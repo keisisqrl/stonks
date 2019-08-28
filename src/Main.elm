@@ -262,7 +262,10 @@ apiEndpoint : String -> String
 apiEndpoint symbol =
     Url.Builder.absolute
         [ ".api" ]
-        [ Url.Builder.string "symbol" symbol ]
+        [ Url.Builder.string
+            "symbol"
+            (String.toUpper symbol)
+        ]
 
 
 callStonksApi : Model -> Cmd Msg
