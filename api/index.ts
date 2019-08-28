@@ -15,16 +15,21 @@ export default function(req: NowRequest, res: NowResponse) {
     res.status(400).send(null);
     return;
   }
-  if (symbol.toUpperCase() != symbol) {
-    console.log("redirect to upper-case");
-    res.setHeader("Location",
-      req.headers['x-forwarded-proto'] + "://" +
-      req.headers['host'] + ['/.api?symbol='] +
-      symbol.toUpperCase());
-    res.status(301).send(null);
-  }
+
   console.log("request for symbol: " + symbol +
     " via regions " + req.headers['x-now-trace']);
+
+  if (symbol.toUpperCase() != symbol) {
+      console.log("redirect to upper-case");
+      res.setHeader("Location",
+        req.headers['x-forwarded-proto'] + "://" +
+        req.headers['host'] + ['/.api?symbol='] +
+        symbol.toUpperCase());
+      res.setHeader("Cache-Control", "maxage=86400, immutable")
+      res.status(301).send(null);
+      return;
+  }
+
   const match_tag: string|null = req.headers['if-none-match'];
   const last_fetch: number = Date.parse(req.headers['if-modified-since']);
   if (match_tag) {
