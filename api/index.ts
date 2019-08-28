@@ -34,7 +34,13 @@ export default function(req: NowRequest, res: NowResponse) {
   const match_tag: string|null = req.headers['if-none-match'];
   const last_fetch: number = Date.parse(req.headers['if-modified-since']);
   if (match_tag) {
-    if (check_etag(match_tag)) {
+    let matched: boolean = false;
+    try {
+      matched = check_etag(match_tag);
+    } catch (error) {
+      console.log("Error checking etag: " + error);
+    }
+    if (matched) {
       console.log("Matched etag");
       res.setHeader("etag",match_tag);
       res.status(304).send(null);
@@ -90,11 +96,22 @@ function add_etag(res: NowResponse, timestamp: number): void {
 
 function check_etag(match_tag: string): boolean {
   const decoder: TextDecoder = new TextDecoder();
-  let tagString: string = match_tag.replace(/"/g,'')
-  let tag: Uint8Array = b64.toByteArray(tagString);
+  let tagString: string = match_tag.replace(/"/g,'');
+  let tag: Uint8Array;
+  try {
+    tag = b64.toByteArray(tagString);
+  } catch (error) {
+    throw "Bad etag base64: " + error;
+  }
+  if (tag.byteLength < nacl.secretbox.nonceLength) {
+    throw "Bad etag: too short!"
+  }
   let nonce: Uint8Array = tag.slice(0,nacl.secretbox.nonceLength);
   let crypted: Uint8Array = tag.slice(nacl.secretbox.nonceLength);
-  let decrypted: Uint8Array = nacl.secretbox.open(crypted,nonce,etag_key);
+  let decrypted: Uint8Array|null = nacl.secretbox.open(crypted,nonce,etag_key);
+  if (decrypted == null) {
+    throw "Failed to decrypt etag! Did etag key change?"
+  }
   let timestamp: number = parseInt(decoder.decode(decrypted));
   return check_date(timestamp);
 }
