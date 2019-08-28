@@ -11,19 +11,23 @@ const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 export default function(req: NowRequest, res: NowResponse) {
   const {symbol = "DJIA"} = req.query;
   if (symbol.length > 4) {
+    console.log("symbol " + symbol + " too long!");
     res.status(400).send(null);
     return;
   }
+  console.log("request for symbol: " + symbol);
   const match_tag: string|null = req.headers['if-none-match'];
   const last_fetch: number = Date.parse(req.headers['if-modified-since']);
   if (match_tag) {
     if (check_etag(match_tag)) {
+      console.log("Matched etag");
       res.setHeader("etag",match_tag);
       res.status(304).send(null);
       return;
     }
   } else if (last_fetch) {
     if (check_date(last_fetch)) {
+      console.log("Matched timestamp");
       add_etag(res, last_fetch);
       res.status(304).send(null);
       return;
@@ -34,6 +38,7 @@ export default function(req: NowRequest, res: NowResponse) {
   .then((av_resp) => {
       let symbol: string = av_resp['Global Quote']['01. symbol'];
       let change: string = av_resp['Global Quote']['09. change'];
+      console.log("Got response for " + symbol);
       add_etag(res, Date.now());
       res.setHeader("cache-control", "s-maxage=2700");
       res.status(200).json({
