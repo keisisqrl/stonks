@@ -7,6 +7,7 @@ import {TextEncoder, TextDecoder} from 'util';
 
 const alpha = new AlphaVantage(process.env.AV_API_KEY);
 const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
+const exprMinutes: number = 45;
 
 export default function(req: NowRequest, res: NowResponse) {
   const {symbol = "DJIA"}: {symbol?: string} = req.query;
@@ -54,7 +55,8 @@ export default function(req: NowRequest, res: NowResponse) {
       let change: string = av_resp['Global Quote']['09. change'];
       console.log("Got response for " + symbol);
       add_etag(res, Date.now());
-      res.setHeader("cache-control", "s-maxage=2700");
+      let cacheTime: number = calculate_cache_time();
+      res.setHeader("cache-control", "s-maxage=" + cacheTime);
       res.status(200).json({
         symbol: symbol,
         change: change
@@ -104,6 +106,34 @@ function check_date(timestamp: number): boolean {
   }
 }
 
+function calculate_cache_time(): number {
+  let targetTime: moment.Moment = moment().tz('America/New_York');
+  if ((!in_weekend()) && (!outside_business_hours())) {
+    return exprMinutes * 60;
+  }
+  if (in_weekend()) {
+    switch (targetTime.day()) {
+      case 0:
+        targetTime.day(1);
+      case 6:
+        targetTime.day(8);
+    }
+    targetTime.hour(9);
+    targetTime.minute(30);
+  } else if (outside_business_hours()) {
+    if (targetTime.hour() > 16) {
+      targetTime.hour(33);
+    } else {
+      targetTime.hour(9);
+    }
+    targetTime.minute(30);
+  }
+  let cacheTime: number = targetTime.unix() - moment().unix();
+  console.log("Outside business hours! Caching for "
+    + cacheTime + " seconds");
+  return cacheTime;
+}
+
 function in_weekend(timestamp = Date.now()): boolean {
   let day: number = moment(timestamp).tz('America/New_York').day();
   if (day == 0 || day == 6) return true;
@@ -126,6 +156,6 @@ function no_update(timestamp: number) {
     ((in_weekend(timestamp) || outside_business_hours(timestamp))
     && (in_weekend() || outside_business_hours())
     && (Date.now() - timestamp < 24*60*60*1000))
-    || Date.now() - timestamp < 45*60*1000
+    || Date.now() - timestamp < exprMinutes*60*1000
   );
 }
