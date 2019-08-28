@@ -47,10 +47,15 @@ export default function(req: NowRequest, res: NowResponse) {
         change: change
       });
 
-  }).catch((_) => {
-    console.log("ERROR! api limit exceeded");
-    res.setHeader("retry-after", "120");
-    res.status(429).send(null);
+  }).catch((err) => {
+    if (err.includes("frequency")) {
+      console.log("ERROR! api limit exceeded");
+      res.setHeader("retry-after", "120");
+      res.status(429).send(null);
+    } else {
+      console.log("Unknown error: " + err);
+      res.status(500).send(null);
+    }
   });
 }
 
