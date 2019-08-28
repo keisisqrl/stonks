@@ -23,7 +23,7 @@ export default function(req: NowRequest, res: NowResponse) {
       console.log("redirect to upper-case");
       res.setHeader("Location",
         req.headers['x-forwarded-proto'] + "://" +
-        req.headers['host'] + ['/.api?symbol='] +
+        req.headers['host'] + ['/.api/'] +
         symbol.toUpperCase());
       res.setHeader("Cache-Control", "maxage=86400, immutable")
       res.status(301).send(null);
