@@ -121,7 +121,7 @@ function calculate_cache_time(): number {
     targetTime.hour(9);
     targetTime.minute(30);
   } else if (outside_business_hours()) {
-    if (targetTime.hour() > 16) {
+    if (targetTime.hour() > 15) {
       targetTime.hour(33);
     } else {
       targetTime.hour(9);
@@ -144,7 +144,7 @@ function outside_business_hours(timestamp = Date.now()): boolean {
   let market_time: moment.Moment = moment(timestamp).tz('America/New_York');
   let minute: number = market_time.minute();
   let hour: number = market_time.hour();
-  if (hour < 9 || hour > 16 || (hour == 9 && minute < 30)) {
+  if (hour < 9 || hour > 15 || (hour == 9 && minute < 30)) {
     return true;
   } else {
     return false;
