@@ -9,11 +9,19 @@ const alpha = new AlphaVantage(process.env.AV_API_KEY);
 const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 
 export default function(req: NowRequest, res: NowResponse) {
-  const {symbol = "DJIA"} = req.query;
+  const {symbol = "DJIA"}: {symbol?: string} = req.query;
   if (symbol.length > 4) {
     console.log("symbol " + symbol + " too long!");
     res.status(400).send(null);
     return;
+  }
+  if (symbol.toUpperCase() != symbol) {
+    console.log("redirect to upper-case");
+    res.setHeader("Location",
+      req.headers['x-forwarded-proto'] + "://" +
+      req.headers['host'] + ['/.api?symbol='] +
+      symbol.toUpperCase());
+    res.status(301).send(null);
   }
   console.log("request for symbol: " + symbol +
     " via regions " + req.headers['x-now-trace']);
