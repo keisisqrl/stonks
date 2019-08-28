@@ -15,7 +15,8 @@ export default function(req: NowRequest, res: NowResponse) {
     res.status(400).send(null);
     return;
   }
-  console.log("request for symbol: " + symbol);
+  console.log("request for symbol: " + symbol +
+    " via regions " + req.headers['x-now-trace']);
   const match_tag: string|null = req.headers['if-none-match'];
   const last_fetch: number = Date.parse(req.headers['if-modified-since']);
   if (match_tag) {
