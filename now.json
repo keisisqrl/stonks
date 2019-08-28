@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "env": {
+    "AV_API_KEY": "@av-api-key",
+    "ETAG_KEY": "@etag-key"
+  },
+  "builds": [
+    {"src":"*.jpg", "use": "@now/static"},
+    {"src":"package.json", "use": "@now/static-build"},
+    {"src":"api/index.ts", "use": "@now/node"}
+  ],
+  "public": true,
+  "regions": ["cle1"],
+  "routes": [
+    {"src":"/.api(.*)", "dest": "/api$1"},
+    {"src":"/(.*).jpg", "dest": "/$1.jpg"},
+    {"src":"/(.*)", "dest": "/"}
+  ]
+}

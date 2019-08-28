@@ -1,0 +1,13 @@
+{
+  "name": "stonks",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "elm make ./src/Main.elm --output=public/index.html --optimize",
+    "dev": "elm make ./src/Main.elm --output=public/index.html --debug"
+  },
+  "devDependencies": {
+    "elm": "^0.19.0-no-deps"
+  }
+}
