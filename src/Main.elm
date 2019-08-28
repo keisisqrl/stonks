@@ -86,7 +86,7 @@ initSymbol url =
 
 type alias StonksResponse =
     { symbol : String
-    , change : Float
+    , isStonks : Bool
     }
 
 
@@ -141,7 +141,7 @@ handleResponse response model =
         Ok stonksResponse ->
             let
                 isStonks =
-                    stonksResponse.change > 0.0
+                    stonksResponse.isStonks
             in
             ( { model
                 | symbol = stonksResponse.symbol
@@ -279,10 +279,7 @@ decodeStonks : D.Decoder StonksResponse
 decodeStonks =
     D.map2 StonksResponse
         (D.field "symbol" D.string)
-        (D.field "change" D.string
-            |> D.map String.toFloat
-            |> D.map (Maybe.withDefault 0)
-        )
+        (D.field "isStonks" D.bool)
 
 
 inputwidth : Element.Attribute Msg

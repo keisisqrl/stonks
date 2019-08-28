@@ -53,13 +53,14 @@ export default function(req: NowRequest, res: NowResponse) {
   .then((av_resp) => {
       let symbol: string = av_resp['Global Quote']['01. symbol'];
       let change: string = av_resp['Global Quote']['09. change'];
+      let isStonks: boolean = parseFloat(change) > 0;
       console.log("Got response for " + symbol);
       add_etag(res, Date.now());
       let cacheTime: number = calculate_cache_time();
       res.setHeader("cache-control", "s-maxage=" + cacheTime);
       res.status(200).json({
         symbol: symbol,
-        change: change
+        isStonks: isStonks
       });
 
   }).catch((err) => {
