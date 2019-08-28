@@ -9,7 +9,7 @@
     {"src":"package.json", "use": "@now/static-build"},
     {"src":"api/index.ts", "use": "@now/node"}
   ],
-  "regions": ["cle1"],
+  "regions": ["iad1"],
   "routes": [
     {"src":"/.api/([a-zA-Z]{1,4})",
      "dest":"/api/index.ts?symbol=$1"},
