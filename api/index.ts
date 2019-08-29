@@ -59,8 +59,8 @@ export default function(req: NowRequest, res: NowResponse) {
       return;
     }
   } else if (last_fetch) {
-    if (check_date(last_fetch)) {
-      console.log("Matched timestamp");
+    if (no_update(last_fetch)) {
+      console.log("No need to update per timestamp");
       res.status(304).send(null);
       return;
     }
@@ -134,15 +134,7 @@ function check_etag(match_tag: string): EtagContents|null {
   } catch (error) {
     throw "Bad etag payload: " + error;
   }
-  return check_date(contents.ts) ? contents : null;
-}
-
-function check_date(timestamp: number): boolean {
-  if ( no_update(timestamp) ) {
-    return true;
-  } else {
-    return false;
-  }
+  return no_update(contents.ts) ? contents : null;
 }
 
 function calculate_cache_time(timestamp = Date.now()): number {
@@ -190,11 +182,8 @@ function outside_business_hours(timestamp = Date.now()): boolean {
   }
 }
 
-function no_update(timestamp: number) {
-  return (
-    ((in_weekend(timestamp) || outside_business_hours(timestamp))
-    && (in_weekend() || outside_business_hours())
-    && (Date.now() - timestamp < 24*60*60*1000))
-    || Date.now() - timestamp < exprMinutes*60*1000
-  );
+function no_update(timestamp: number): boolean {
+  return moment(timestamp).add({
+      seconds: calculate_cache_time(timestamp)
+    }).isAfter();
 }
