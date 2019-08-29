@@ -5,6 +5,16 @@ import nacl from 'tweetnacl';
 import b64 from 'base64-js';
 import {TextEncoder, TextDecoder} from 'util';
 
+interface ResponseObject {
+  symbol: string,
+  isStonks: Boolean
+}
+
+interface EtagContents {
+  ts: number,
+  resp: ResponseObject
+}
+
 const alpha = new AlphaVantage(process.env.AV_API_KEY);
 const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 const exprMinutes: number = 45;
@@ -26,7 +36,7 @@ export default function(req: NowRequest, res: NowResponse) {
         req.headers['x-forwarded-proto'] + "://" +
         req.headers['host'] + ['/.api/'] +
         symbol.toUpperCase());
-      res.setHeader("Cache-Control", "maxage=86400, immutable")
+      res.setHeader("Cache-Control", "max-age=86400, immutable")
       res.status(301).send(null);
       return;
   }
@@ -34,22 +44,23 @@ export default function(req: NowRequest, res: NowResponse) {
   const match_tag: string|null = req.headers['if-none-match'];
   const last_fetch: number = Date.parse(req.headers['if-modified-since']);
   if (match_tag) {
-    let matched: boolean = false;
+    let matched: EtagContents|null = null;
     try {
       matched = check_etag(match_tag);
     } catch (error) {
       console.log("Error checking etag: " + error);
     }
-    if (matched) {
+    if (matched != null) {
       console.log("Matched etag");
-      res.setHeader("etag",match_tag);
-      res.status(304).send(null);
+      let cacheTime: number = calculate_cache_time(matched.ts);
+      res.setHeader("Cache-Control", "s-maxage=" + cacheTime);
+      res.setHeader("ETag",match_tag);
+      res.status(200).json(matched.resp);
       return;
     }
   } else if (last_fetch) {
     if (check_date(last_fetch)) {
       console.log("Matched timestamp");
-      add_etag(res, last_fetch);
       res.status(304).send(null);
       return;
     }
@@ -61,13 +72,14 @@ export default function(req: NowRequest, res: NowResponse) {
       let change: string = av_resp['Global Quote']['09. change'];
       let isStonks: boolean = parseFloat(change) > 0;
       console.log("Got response for " + symbol);
-      add_etag(res, Date.now());
-      let cacheTime: number = calculate_cache_time();
-      res.setHeader("cache-control", "s-maxage=" + cacheTime);
-      res.status(200).json({
+      let respPayload: ResponseObject = {
         symbol: symbol,
         isStonks: isStonks
-      });
+      };
+      add_etag(res, Date.now(), respPayload);
+      let cacheTime: number = calculate_cache_time();
+      res.setHeader("cache-control", "s-maxage=" + cacheTime);
+      res.status(200).json(respPayload);
 
   }).catch((err) => {
     if (err.includes("frequency")) {
@@ -81,11 +93,15 @@ export default function(req: NowRequest, res: NowResponse) {
   });
 }
 
-function add_etag(res: NowResponse, timestamp: number): void {
+function add_etag(res: NowResponse, timestamp: number, resp: ResponseObject): void {
   const encoder: TextEncoder = new TextEncoder();
+  let contents: EtagContents = {
+    ts: timestamp,
+    resp: resp
+  };
   let nonce: Uint8Array = nacl.randomBytes(nacl.secretbox.nonceLength);
   let crypted: Uint8Array = nacl.secretbox(
-    encoder.encode(timestamp.toString()),nonce,etag_key
+    encoder.encode(JSON.stringify(contents)),nonce,etag_key
   )
   let tag: Uint8Array = new Uint8Array(crypted.length + nonce.length);
   tag.set(nonce,0);
@@ -94,7 +110,7 @@ function add_etag(res: NowResponse, timestamp: number): void {
   res.setHeader("etag",'"' + tagString + '"')
 }
 
-function check_etag(match_tag: string): boolean {
+function check_etag(match_tag: string): EtagContents|null {
   const decoder: TextDecoder = new TextDecoder();
   let tagString: string = match_tag.replace(/"/g,'');
   let tag: Uint8Array;
@@ -112,8 +128,13 @@ function check_etag(match_tag: string): boolean {
   if (decrypted == null) {
     throw "Failed to decrypt etag! Did etag key change?"
   }
-  let timestamp: number = parseInt(decoder.decode(decrypted));
-  return check_date(timestamp);
+  let contents: EtagContents;
+  try {
+    contents = JSON.parse(decoder.decode(decrypted))
+  } catch (error) {
+    throw "Bad etag payload: " + error;
+  }
+  return check_date(contents.ts) ? contents : null;
 }
 
 function check_date(timestamp: number): boolean {
@@ -124,8 +145,8 @@ function check_date(timestamp: number): boolean {
   }
 }
 
-function calculate_cache_time(): number {
-  let targetTime: moment.Moment = moment().tz('America/New_York');
+function calculate_cache_time(timestamp = Date.now()): number {
+  let targetTime: moment.Moment = moment(timestamp).tz('America/New_York');
   if ((!in_weekend()) && (!outside_business_hours())) {
     return exprMinutes * 60;
   }
