@@ -51,7 +51,7 @@ export default function(req: NowRequest, res: NowResponse) {
       console.log("Error checking etag: " + error);
     }
     if (matched != null) {
-      console.log("Matched etag");
+      console.log("Matched etag, populating cache");
       let cacheTime: number = calculate_cache_time(matched.ts);
       res.setHeader("Cache-Control", "s-maxage=" + cacheTime);
       res.setHeader("ETag",match_tag);
