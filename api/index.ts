@@ -57,6 +57,8 @@ export default function(req: NowRequest, res: NowResponse) {
       res.setHeader("ETag",match_tag);
       res.status(200).json(etag.resp);
       return;
+    } else {
+      console.log("Expired etag");
     }
   } else if (last_fetch) {
     if (no_update(last_fetch)) {
