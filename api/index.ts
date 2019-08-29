@@ -44,18 +44,18 @@ export default function(req: NowRequest, res: NowResponse) {
   const match_tag: string|null = req.headers['if-none-match'];
   const last_fetch: number = Date.parse(req.headers['if-modified-since']);
   if (match_tag) {
-    let matched: EtagContents|null = null;
+    let matched: boolean = false;
+    let etag: EtagContents;
     try {
-      matched = check_etag(match_tag);
+     [matched, etag] = check_etag(match_tag);
     } catch (error) {
       console.log("Error checking etag: " + error);
     }
-    if (matched != null) {
+    if (matched) {
       console.log("Matched etag, populating cache");
-      let cacheTime: number = calculate_cache_time(matched.ts);
-      res.setHeader("Cache-Control", "s-maxage=" + cacheTime);
+      add_cache_control(res, etag.ts);
       res.setHeader("ETag",match_tag);
-      res.status(200).json(matched.resp);
+      res.status(200).json(etag.resp);
       return;
     }
   } else if (last_fetch) {
@@ -77,8 +77,7 @@ export default function(req: NowRequest, res: NowResponse) {
         isStonks: isStonks
       };
       add_etag(res, Date.now(), respPayload);
-      let cacheTime: number = calculate_cache_time();
-      res.setHeader("cache-control", "s-maxage=" + cacheTime);
+      add_cache_control(res);
       res.status(200).json(respPayload);
 
   }).catch((err) => {
@@ -110,7 +109,13 @@ function add_etag(res: NowResponse, timestamp: number, resp: ResponseObject): vo
   res.setHeader("etag",'"' + tagString + '"')
 }
 
-function check_etag(match_tag: string): EtagContents|null {
+function add_cache_control(res: NowResponse, timestamp = Date.now()): void {
+  let cacheTime: number = calculate_cache_time(timestamp);
+  console.log("Caching for: " + cacheTime + " seconds");
+  res.setHeader("cache-control", "s-maxage=" + cacheTime);
+}
+
+function check_etag(match_tag: string): [boolean, EtagContents] {
   const decoder: TextDecoder = new TextDecoder();
   let tagString: string = match_tag.replace(/"/g,'');
   let tag: Uint8Array;
@@ -134,10 +139,10 @@ function check_etag(match_tag: string): EtagContents|null {
   } catch (error) {
     throw "Bad etag payload: " + error;
   }
-  return no_update(contents.ts) ? contents : null;
+  return [no_update(contents.ts), contents];
 }
 
-function calculate_cache_time(timestamp = Date.now()): number {
+function calculate_cache_time(timestamp: number): number {
   let targetTime: moment.Moment = moment(timestamp).tz('America/New_York');
   if ((!in_weekend()) && (!outside_business_hours())) {
     return exprMinutes * 60;
@@ -159,10 +164,7 @@ function calculate_cache_time(timestamp = Date.now()): number {
     }
     targetTime.minute(30);
   }
-  let cacheTime: number = targetTime.unix() - moment().unix();
-  console.log("Outside business hours! Caching for "
-    + cacheTime + " seconds");
-  return cacheTime;
+  return targetTime.unix() - moment().unix();
 }
 
 function in_weekend(timestamp = Date.now()): boolean {
