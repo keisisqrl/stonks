@@ -146,9 +146,6 @@ function check_etag(match_tag: string): [boolean, EtagContents] {
 
 function calculate_cache_time(timestamp: number): number {
   let targetTime: moment.Moment = moment(timestamp).tz('America/New_York');
-  if ((!in_weekend()) && (!outside_business_hours())) {
-    return exprMinutes * 60;
-  }
   if (in_weekend()) {
     switch (targetTime.day()) {
       case 0:
@@ -165,6 +162,10 @@ function calculate_cache_time(timestamp: number): number {
       targetTime.hour(9);
     }
     targetTime.minute(30);
+  } else {
+    targetTime.add({
+      minutes: exprMinutes
+    });
   }
   return targetTime.unix() - moment().unix();
 }
