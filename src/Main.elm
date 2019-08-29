@@ -34,6 +34,7 @@ import Url.Builder
 import Url.Parser as Parser exposing (Parser)
 
 
+main : Program () Model Msg
 main =
     application
         { init = init
