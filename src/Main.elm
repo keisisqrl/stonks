@@ -25,7 +25,10 @@ import Element.Input as Input
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
+import Http.Tasks as HtTasks
 import Json.Decode as D
+import Process
+import Task exposing (Task)
 import Url exposing (Url)
 import Url.Builder
 import Url.Parser as Parser exposing (Parser)
@@ -47,6 +50,7 @@ type alias Model =
     , isStonks : Maybe Bool
     , message : String
     , key : Navigation.Key
+    , retry : Bool
     }
 
 
@@ -64,6 +68,7 @@ init _ url key =
                 Nothing
                 "Loading..."
                 key
+                False
     in
     ( model
     , callStonksApi model
@@ -115,6 +120,7 @@ update msg model =
             ( { model
                 | isStonks = Nothing
                 , message = "Loading..."
+                , retry = False
               }
             , callStonksApi model
             )
@@ -160,28 +166,44 @@ handleResponse response model =
             )
 
         Err errorHttp ->
-            ( handleHttpError errorHttp model, Cmd.none )
+            handleHttpError errorHttp model
 
 
-handleHttpError : Http.Error -> Model -> Model
+handleHttpError : Http.Error -> Model -> ( Model, Cmd Msg )
 handleHttpError errorHttp model =
     let
         message =
             case errorHttp of
                 Http.BadStatus status ->
                     if status == 429 then
-                        "API limit exceeded! Try again in a minute."
+                        "API limit exceeded! "
+                            ++ (if model.retry then
+                                    "Try again later."
+
+                                else
+                                    "Trying again in 60 seconds..."
+                               )
 
                     else
                         "Error. Please try again."
 
                 _ ->
                     "Error. Please try again."
+
+        cmd =
+            if model.retry then
+                Cmd.none
+
+            else
+                retryApiIn60 model
     in
-    { model
+    ( { model
         | isStonks = Nothing
         , message = message
-    }
+        , retry = True
+      }
+    , cmd
+    )
 
 
 docView : Model -> Browser.Document Msg
@@ -273,6 +295,19 @@ callStonksApi model =
         { url = apiEndpoint model.symbol
         , expect = Http.expectJson StonksApiResponse decodeStonks
         }
+
+
+retryApiIn60 : Model -> Cmd Msg
+retryApiIn60 model =
+    Process.sleep (60 * 1000)
+        |> Task.andThen
+            (\_ ->
+                HtTasks.get
+                    { url = apiEndpoint model.symbol
+                    , resolver = HtTasks.resolveJson decodeStonks
+                    }
+            )
+        |> Task.attempt StonksApiResponse
 
 
 decodeStonks : D.Decoder StonksResponse
