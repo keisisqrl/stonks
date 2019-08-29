@@ -52,13 +52,13 @@ export default function(req: NowRequest, res: NowResponse) {
       console.log("Error checking etag: " + error);
     }
     if (matched) {
-      console.log("Matched etag, populating cache");
+      console.log(`Matched etag for ${symbol}, populating cache`);
       add_cache_control(res, etag.ts);
       res.setHeader("ETag",match_tag);
       res.status(200).json(etag.resp);
       return;
     } else {
-      console.log("Expired etag");
+      console.log(`Expired etag for ${symbol}`);
     }
   } else if (last_fetch) {
     if (no_update(last_fetch)) {
