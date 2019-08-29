@@ -15,8 +15,13 @@ interface EtagContents {
   resp: ResponseObject
 }
 
+// Configuration - AlphaVantage API key and etag crypto key from secrets/env
+
 const alpha = new AlphaVantage(process.env.AV_API_KEY);
 const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
+
+// Minutes for a response to expire
+
 const exprMinutes: number = 45;
 
 export default function(req: NowRequest, res: NowResponse) {
@@ -146,7 +151,7 @@ function check_etag(match_tag: string): [boolean, EtagContents] {
 
 function calculate_cache_time(timestamp: number): number {
   let targetTime: moment.Moment = moment(timestamp).tz('America/New_York');
-  if (in_weekend()) {
+  if (in_weekend(targetTime)) {
     switch (targetTime.day()) {
       case 0:
         targetTime.day(1);
@@ -155,7 +160,7 @@ function calculate_cache_time(timestamp: number): number {
     }
     targetTime.hour(9);
     targetTime.minute(30);
-  } else if (outside_business_hours()) {
+  } else if (outside_business_hours(targetTime)) {
     if (targetTime.hour() > 15) {
       targetTime.hour(33);
     } else {
@@ -170,14 +175,13 @@ function calculate_cache_time(timestamp: number): number {
   return targetTime.unix() - moment().unix();
 }
 
-function in_weekend(timestamp = Date.now()): boolean {
-  let day: number = moment(timestamp).tz('America/New_York').day();
+function in_weekend(market_time: moment.Moment): boolean {
+  let day: number = market_time.day();
   if (day == 0 || day == 6) return true;
   else return false;
 }
 
-function outside_business_hours(timestamp = Date.now()): boolean {
-  let market_time: moment.Moment = moment(timestamp).tz('America/New_York');
+function outside_business_hours(market_time: moment.Moment): boolean {
   let minute: number = market_time.minute();
   let hour: number = market_time.hour();
   if (hour < 9 || hour > 15 || (hour == 9 && minute < 30)) {
