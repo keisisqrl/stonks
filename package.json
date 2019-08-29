@@ -4,11 +4,12 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "elm make ./src/Main.elm --output=public/index.html --optimize",
-    "dev": "elm make ./src/Main.elm --output=public/index.html --debug"
-  },
+    "build": "parcel build -d build --no-content-hash --no-source-maps index.js index.html *.jpg"
+},
   "devDependencies": {
-    "elm": "^0.19.0-no-deps"
+    "elm": "^0.19.0-no-deps",
+    "node-elm-compiler": "^5.0.4",
+    "parcel": "^1.12.3"
   },
   "engines": {
     "node": ">=10.x"

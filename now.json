@@ -20,6 +20,7 @@
         "Cache-Control": "max-age=86400, immutable"
       }
     },
+    {"src":"/index.js","dest":"/index.js"},
     {"src":"/(.*)", "dest": "/"}
   ]
 }
