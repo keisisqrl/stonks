@@ -24,10 +24,34 @@ var params: aws.DynamoDB.CreateTableInput = {
   }
 }
 
+var ttlParams: aws.DynamoDB.UpdateTimeToLiveInput = {
+  TableName: "stonks",
+  TimeToLiveSpecification: {
+    AttributeName: "expiry",
+    Enabled: true
+  }
+}
+
+dynamodb.deleteTable({TableName: "stonks"}, (err, data) => {
+  if (err) {
+    console.error(err);
+  } else {
+    console.log(data);
+  };
+
+
 dynamodb.createTable(params, (err, data) => {
   if (err) {
     console.error(err);
   } else {
     console.log(data);
+    dynamodb.updateTimeToLive(ttlParams,(err, data) => {
+      if (err) {
+        console.error(err);
+      } else {
+        console.log(data);
+      }
+    })
   }
-})
+});}
+);

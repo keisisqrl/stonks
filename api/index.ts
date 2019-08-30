@@ -7,7 +7,7 @@ import {TextEncoder, TextDecoder} from 'util';
 
 interface ResponseObject {
   symbol: string,
-  isStonks: Boolean
+  isStonks: boolean
 }
 
 interface EtagContents {
