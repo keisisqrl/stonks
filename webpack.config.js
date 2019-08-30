@@ -14,7 +14,7 @@ module.exports = {
       use: {
         loader: 'elm-webpack-loader',
         options: {
-          debug: true
+          optimize: true
         }
       }
     }
