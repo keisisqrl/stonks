@@ -16,10 +16,12 @@ const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 const exprMinutes: number = 45;
 
 aws.config.update({
-  region: "us-east-1"
+  region: "us-east-1",
+  accessKeyId: process.env.STONKS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.STONKS_SECRET_ACCESS_KEY
 })
 
-if (process.env.AWS_ENDPOINT) {
+if (process.env.STONKS_ENDPOINT) {
   //@ts-ignore: "doesn't exist"
   aws.config.update({endpoint: process.env.AWS_ENDPOINT});
 }
