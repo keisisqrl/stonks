@@ -8,6 +8,7 @@
   },
   "builds": [
     {"src":"*.jpg", "use": "@now/static"},
+    {"src": "index.html", "use": "@now/static"},
     {"src":"package.json", "use": "@now/static-build"},
     {"src":"api/index.ts", "use": "@now/node"}
   ],

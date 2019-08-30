@@ -343,7 +343,7 @@ stonksImage model =
                         [ imgBase ++ ".jpg" ]
                         []
             in
-            image [] { src = imgUrl, description = "" }
+            image [width fill] { src = imgUrl, description = "" }
         )
         model.isStonks
         |> Maybe.withDefault (text model.message)
