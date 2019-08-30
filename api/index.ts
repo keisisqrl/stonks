@@ -35,6 +35,12 @@ export default function(req: NowRequest, res: NowResponse) {
   console.log("request for symbol: " + symbol +
     " via regions " + req.headers['x-now-trace']);
 
+  if (symbol == "TIME") {
+    console.log("Debug symbol");
+    res.status(429).send(null);
+    return;
+  }
+
   if (symbol.toUpperCase() != symbol) {
       console.log("redirect to upper-case");
       res.setHeader("Location",
