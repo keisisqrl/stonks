@@ -4,6 +4,27 @@ import moment from 'moment-timezone';
 import nacl from 'tweetnacl';
 import b64 from 'base64-js';
 import {TextEncoder, TextDecoder} from 'util';
+import aws from "aws-sdk";
+
+// Configuration - AlphaVantage API key and etag crypto key from secrets/env
+
+const alpha = new AlphaVantage(process.env.AV_API_KEY);
+const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
+
+// Minutes for a response to expire
+
+const exprMinutes: number = 45;
+
+aws.config.update({
+  region: "us-east-1"
+})
+
+if (process.env.AWS_ENDPOINT) {
+  //@ts-ignore: "doesn't exist"
+  aws.config.update({endpoint: process.env.AWS_ENDPOINT});
+}
+
+const dynamodb: aws.DynamoDB = new aws.DynamoDB();
 
 interface ResponseObject {
   symbol: string,
@@ -15,14 +36,6 @@ interface EtagContents {
   resp: ResponseObject
 }
 
-// Configuration - AlphaVantage API key and etag crypto key from secrets/env
-
-const alpha = new AlphaVantage(process.env.AV_API_KEY);
-const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
-
-// Minutes for a response to expire
-
-const exprMinutes: number = 45;
 
 export default function(req: NowRequest, res: NowResponse) {
   const {symbol = "DJIA"}: {symbol?: string} = req.query;
