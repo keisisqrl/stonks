@@ -4,7 +4,9 @@
   "main": "index.ts",
   "license": "MIT",
   "devDependencies": {
-    "@now/node": "^0.12.7"
+    "@now/node": "^0.12.7",
+    "ts-node": "^8.3.0",
+    "typescript": "^3.6.2"
   },
   "dependencies": {
     "@types/base64-js": "^1.2.5",
@@ -17,5 +19,8 @@
   },
   "engines": {
     "node": ">=10.x"
+  },
+  "scripts": {
+    "dev-prep": "ts-node make-local-dev-table.ts"
   }
 }
