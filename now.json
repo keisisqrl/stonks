@@ -2,7 +2,9 @@
   "version": 2,
   "env": {
     "AV_API_KEY": "@av-api-key",
-    "ETAG_KEY": "@etag-key"
+    "ETAG_KEY": "@etag-key",
+    "AWS_ACCESS_KEY_ID": "@stonks-aws-access-key-id",
+    "AWS_SECRET_ACCESS_KEY": "@stonks-aws-secret-access-key"
   },
   "builds": [
     {"src":"*.jpg", "use": "@now/static"},
