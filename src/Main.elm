@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser exposing (Document, application, document)
 import Browser.Navigation as Navigation
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Element
     exposing
         ( Element
@@ -25,10 +26,12 @@ import Element.Input as Input
 import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
-import Http.Tasks as HtTasks
 import Json.Decode as D
 import Process
+import RemoteData exposing (RemoteData(..), WebData)
+import RemoteData.Http as RDHttp
 import Task exposing (Task)
+import Update.Extra exposing (addCmd, updateModel)
 import Url exposing (Url)
 import Url.Builder
 import Url.Parser as Parser exposing (Parser)
@@ -48,20 +51,9 @@ main =
 
 type alias Model =
     { symbol : String
-    , isStonks : Maybe Bool
-    , message : String
+    , isStonks : WebData StonksResponse
     , key : Navigation.Key
-    , reqState : RequestState
-    , reqSymbol : String
     }
-
-
-type RequestState
-    = Loading
-    | Loaded
-    | WaitRetry
-    | Retrying
-    | Failed
 
 
 defaultSymbol : String
@@ -78,11 +70,8 @@ init _ url key =
         model =
             Model
                 symbol
-                Nothing
-                "Loading..."
-                key
                 Loading
-                symbol
+                key
     in
     ( model
     , callStonksApi symbol
@@ -111,174 +100,99 @@ type alias StonksResponse =
 
 type Msg
     = TextInput String
-    | StonksApiResponse (Result Http.Error (Maybe StonksResponse))
+    | StonksApiResponse (WebData StonksResponse)
     | GetStonks
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
-    | RetryGet String
+    | SetNotAsked Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         TextInput symbol ->
-            if String.length symbol < 5 then
-                ( { model | symbol = symbol }, Cmd.none )
+            (if String.length symbol < 5 then
+                { model | symbol = symbol }
 
-            else
-                ( model, Cmd.none )
+             else
+                model
+            )
+                |> withNoCmd
 
         StonksApiResponse response ->
-            handleResponse response model
+            { model | isStonks = response }
+                |> withNoCmd
+                |> updateModel updateFromResponse
+                |> addCmd (changeUrlIfSuccess model)
+                |> addCmd (maybe429Timeout model)
 
         GetStonks ->
-            if
-                model.reqState
-                    == Loading
-                    && model.reqSymbol
-                    == model.symbol
-            then
-                ( model, Cmd.none )
-
-            else
-                ( { model
-                    | isStonks = Nothing
-                    , message = "Loading..."
-                    , reqState = Loading
-                    , reqSymbol = model.symbol
-                  }
-                , callStonksApi model.symbol
-                )
-
-        RetryGet symbol ->
-            if
-                model.reqState
-                    == WaitRetry
-                    && model.reqSymbol
-                    == symbol
-            then
-                ( { model
-                    | isStonks = Nothing
-                    , message = "Retrying..."
-                    , reqState = Retrying
-                  }
-                , callStonksApi symbol
-                )
-
-            else
-                ( model, Cmd.none )
+            { model | isStonks = Loading }
+                |> withCmd (callStonksApi model.symbol)
 
         UrlRequest urlreq ->
             case urlreq of
                 Browser.Internal url ->
-                    ( model
-                    , Navigation.pushUrl model.key (Url.toString url)
-                    )
+                    model
+                        |> withCmd
+                            (Navigation.pushUrl
+                                model.key
+                                (Url.toString url)
+                            )
 
                 Browser.External url ->
-                    ( model
-                    , Navigation.load url
-                    )
+                    model
+                        |> withCmd (Navigation.load url)
+
+        SetNotAsked _ ->
+            { model | isStonks = NotAsked }
+                |> withNoCmd
 
         _ ->
-            ( model, Cmd.none )
+            withNoCmd model
 
 
-handleResponse : Result Http.Error (Maybe StonksResponse) -> Model -> ( Model, Cmd Msg )
-handleResponse response model =
-    let
-        retryOrLoad =
-            case response of
-                Ok maybeStonksResponse ->
-                    Maybe.map (handleOkResponse model) maybeStonksResponse
-                        |> Maybe.withDefault ( model, Cmd.none )
-
-                Err errorHttp ->
-                    handleHttpError errorHttp model
-    in
-    case model.reqState of
-        Retrying ->
-            retryOrLoad
-
-        Loading ->
-            retryOrLoad
-
-        _ ->
-            ( model, Cmd.none )
+updateFromResponse : Model -> Model
+updateFromResponse model =
+    { model
+        | symbol =
+            RemoteData.unwrap
+                model.symbol
+                (\a -> a.symbol)
+                model.isStonks
+    }
 
 
-handleOkResponse : Model -> StonksResponse -> ( Model, Cmd Msg )
-handleOkResponse model response =
-    let
-        isStonks =
-            response.isStonks
-    in
-    ( { model
-        | symbol = response.symbol
-        , isStonks = Just isStonks
-        , reqState = Loaded
-        , message =
-            response.symbol
-                ++ (if isStonks then
-                        " is stonks!"
-
-                    else
-                        " is not stonks!"
-                   )
-      }
-    , Navigation.pushUrl model.key
-        (Url.Builder.absolute [ response.symbol ] [])
-    )
-
-
-handleHttpError : Http.Error -> Model -> ( Model, Cmd Msg )
-handleHttpError errorHttp model =
-    let
-        genericError =
-            ( { model
-                | message = "Error. Please try again later."
-                , reqState = Failed
-              }
-            , Cmd.none
-            )
-
-        throttleError msg state cmd =
-            ( { model
-                | message = "API limit exceeded! " ++ msg
-                , reqState = state
-              }
-            , cmd
-            )
-    in
-    case model.reqState of
-        Loading ->
-            if errorHttp == Http.BadStatus 429 then
-                throttleError
-                    "Trying again in 60 seconds..."
-                    WaitRetry
-                    (retryApiIn60 model)
+maybe429Timeout : Model -> Cmd Msg
+maybe429Timeout model =
+    case model.isStonks of
+        Failure err ->
+            if is429 err then
+                Process.sleep 60000
+                    |> Task.andThen (\_ -> Task.succeed True)
+                    |> Task.perform SetNotAsked
 
             else
-                genericError
-
-        Retrying ->
-            if errorHttp == Http.BadStatus 429 then
-                throttleError
-                    "Try again later."
-                    Failed
-                    Cmd.none
-
-            else
-                genericError
+                Cmd.none
 
         _ ->
-            genericError
+            Cmd.none
+
+
+changeUrlIfSuccess : Model -> Cmd Msg
+changeUrlIfSuccess model =
+    if RemoteData.isSuccess model.isStonks then
+        Navigation.pushUrl model.key
+            (Url.Builder.absolute [ model.symbol ] [])
+
+    else
+        Cmd.none
 
 
 docView : Model -> Browser.Document Msg
 docView model =
     { body = [ view model ]
-    , title = model.message
+    , title = getMessage model
     }
 
 
@@ -319,20 +233,50 @@ inputColumn model =
                 , Background.color (Element.rgb255 238 238 238)
                 , padding 3
                 ]
-                { onPress = Just GetStonks
+                { onPress = buttonPressMsg model
                 , label = text "Check"
                 }
             ]
         ]
 
 
+buttonPressMsg : Model -> Maybe Msg
+buttonPressMsg model =
+    case RemoteData.mapError is429 model.isStonks of
+        Failure rateLimit ->
+            if rateLimit then
+                Nothing
+
+            else
+                Just GetStonks
+
+        Loading ->
+            Nothing
+
+        NotAsked ->
+            Just GetStonks
+
+        Success _ ->
+            Just GetStonks
+
+
 stonksImage : Model -> Element Msg
 stonksImage model =
-    Maybe.map
-        (\isStonks ->
+    let
+        message =
+            getMessage model
+    in
+    case model.isStonks of
+        NotAsked ->
+            text message
+
+        Loading ->
+            text message
+
+        Success response ->
             let
                 imgBase =
-                    if isStonks then
+                    if response.isStonks then
                         "stonks"
 
                     else
@@ -343,10 +287,10 @@ stonksImage model =
                         [ imgBase ++ ".jpg" ]
                         []
             in
-            image [] { src = imgUrl, description = "" }
-        )
-        model.isStonks
-        |> Maybe.withDefault (text model.message)
+            image [ width fill ] { src = imgUrl, description = message }
+
+        Failure _ ->
+            text message
 
 
 apiEndpoint : String -> String
@@ -360,31 +304,67 @@ apiEndpoint symbol =
 
 callStonksApi : String -> Cmd Msg
 callStonksApi symbol =
-    Http.get
-        { url = apiEndpoint symbol
-        , expect = Http.expectJson StonksApiResponse decodeStonks
-        }
+    RDHttp.getWithConfig
+        RDHttp.defaultConfig
+        (apiEndpoint symbol)
+        StonksApiResponse
+        decodeStonks
 
 
-retryApiIn60 : Model -> Cmd Msg
-retryApiIn60 model =
-    Process.sleep (60 * 1000)
-        |> Task.andThen
-            (\_ ->
-                Task.succeed model.reqSymbol
-            )
-        |> Task.perform RetryGet
-
-
-decodeStonks : D.Decoder (Maybe StonksResponse)
+decodeStonks : D.Decoder StonksResponse
 decodeStonks =
     D.map2 StonksResponse
         (D.field "symbol" D.string)
         (D.field "isStonks" D.bool)
-        |> D.map Just
 
 
 inputwidth : Element.Attribute Msg
 inputwidth =
     style "width" "4em"
         |> Element.htmlAttribute
+
+
+getMessage : Model -> String
+getMessage model =
+    case model.isStonks of
+        NotAsked ->
+            "Click to find out!"
+
+        Loading ->
+            "Loading..."
+
+        Success apiResponse ->
+            responseMessage apiResponse
+
+        Failure htErr ->
+            errorMessage htErr
+
+
+responseMessage : StonksResponse -> String
+responseMessage stonksResponse =
+    stonksResponse.symbol
+        ++ " is "
+        ++ (if stonksResponse.isStonks then
+                "stonks!"
+
+            else
+                "NOT stonks!"
+           )
+
+
+errorMessage : Http.Error -> String
+errorMessage errorHttp =
+    if is429 errorHttp then
+        "Rate limit reached! Please try again in 60 seconds..."
+
+    else
+        "Error! Please try again!"
+
+
+is429 : Http.Error -> Bool
+is429 errorHttp =
+    if errorHttp == Http.BadStatus 429 then
+        True
+
+    else
+        False
