@@ -282,32 +282,17 @@ responseMessage stonksResponse =
 
 errorMessage : Http.Error -> String
 errorMessage errorHttp =
-    let
-        defaultErrorMessage =
-            "Error! Please try again!"
-    in
-    case errorHttp of
-        Http.BadUrl _ ->
-            defaultErrorMessage
+    if is429 errorHttp then
+        "Rate limit reached! Please try again in 60 seconds..."
 
-        Http.Timeout ->
-            defaultErrorMessage
-
-        Http.NetworkError ->
-            defaultErrorMessage
-
-        Http.BadStatus status ->
-            badStatusMessage status defaultErrorMessage
-
-        Http.BadBody _ ->
-            defaultErrorMessage
+    else
+        "Error! Please try again!"
 
 
-badStatusMessage : Int -> String -> String
-badStatusMessage status default =
-    case status of
-        429 ->
-            "Rate limit reached! Please try again in 60 seconds..."
+is429 : Http.Error -> Bool
+is429 errorHttp =
+    if errorHttp == Http.BadStatus 429 then
+        True
 
-        _ ->
-            default
+    else
+        False
