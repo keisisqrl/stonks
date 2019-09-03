@@ -123,6 +123,7 @@ update msg model =
                     else
                         identity
                    )
+                |> Tuple.mapSecond (changeUrlIfSuccess model)
                 |> (if RemoteData.isFailure response then
                         Tuple.mapSecond (maybe429Timeout model)
 
@@ -182,6 +183,18 @@ maybe429Timeout model cmd =
     )
         :: [ cmd ]
         |> Cmd.batch
+
+
+changeUrlIfSuccess : Model -> Cmd Msg -> Cmd Msg
+changeUrlIfSuccess model msgCmd =
+    if RemoteData.isSuccess model.isStonks then
+        Navigation.pushUrl model.key
+            (Url.Builder.absolute [ model.symbol ] [])
+            :: [ msgCmd ]
+            |> Cmd.batch
+
+    else
+        msgCmd
 
 
 docView : Model -> Browser.Document Msg
