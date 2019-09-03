@@ -1,4 +1,4 @@
-module Main exposing (main)
+port module Main exposing (main)
 
 import Bool.Extra exposing (ifElse, toMaybe)
 import Browser exposing (Document, application, document)
@@ -28,6 +28,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
 import Json.Decode as D
+import Maybe.Extra as Maybe
 import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
@@ -38,7 +39,10 @@ import Url.Builder
 import Url.Parser as Parser exposing (Parser)
 
 
-main : Program () Model Msg
+port saveLast : String -> Cmd msg
+
+
+main : Program D.Value Model Msg
 main =
     application
         { init = init
@@ -57,16 +61,26 @@ type alias Model =
     }
 
 
+type alias Flags =
+    { lastSymbol : Maybe String }
+
+
 defaultSymbol : String
 defaultSymbol =
     "DJIA"
 
 
-init : () -> Url -> Navigation.Key -> ( Model, Cmd Msg )
-init _ url key =
+init : D.Value -> Url -> Navigation.Key -> ( Model, Cmd Msg )
+init jsonFlags url key =
     let
+        flags =
+            D.decodeValue decodeFlags jsonFlags
+                |> Result.toMaybe
+                |> Maybe.withDefault
+                    (Flags Nothing)
+
         symbol =
-            initSymbol url
+            initSymbol url flags.lastSymbol
 
         model =
             Model
@@ -79,18 +93,17 @@ init _ url key =
     )
 
 
-initSymbol : Url -> String
-initSymbol url =
-    case Parser.parse Parser.string url of
-        Just symbol ->
-            if String.length symbol < 5 then
-                symbol
+initSymbol : Url -> Maybe String -> String
+initSymbol url lastSymbol =
+    let
+        urlSymbol =
+            Parser.parse Parser.string url
 
-            else
-                defaultSymbol
-
-        Nothing ->
+        fallback =
             defaultSymbol
+    in
+    Maybe.or urlSymbol lastSymbol
+        |> Maybe.withDefault defaultSymbol
 
 
 type alias StonksResponse =
@@ -319,6 +332,12 @@ decodeStonks =
     D.map2 StonksResponse
         (D.field "symbol" D.string)
         (D.field "isStonks" D.bool)
+
+
+decodeFlags : D.Decoder Flags
+decodeFlags =
+    D.map Flags
+        (D.field "lastSymbol" (D.maybe D.string))
 
 
 inputwidth : Element.Attribute Msg
