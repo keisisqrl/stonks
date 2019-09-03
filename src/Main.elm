@@ -2,6 +2,7 @@ module Main exposing (main)
 
 import Browser exposing (Document, application, document)
 import Browser.Navigation as Navigation
+import Cmd.Extra exposing (withCmd, withNoCmd)
 import Element
     exposing
         ( Element
@@ -30,6 +31,7 @@ import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
 import Task exposing (Task)
+import Update.Extra exposing (addCmd, updateModel)
 import Url exposing (Url)
 import Url.Builder
 import Url.Parser as Parser exposing (Parser)
@@ -109,50 +111,45 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         TextInput symbol ->
-            if String.length symbol < 5 then
-                ( { model | symbol = symbol }, Cmd.none )
+            (if String.length symbol < 5 then
+                { model | symbol = symbol }
 
-            else
-                ( model, Cmd.none )
+             else
+                model
+            )
+                |> withNoCmd
 
         StonksApiResponse response ->
-            ( { model | isStonks = response }, Cmd.none )
-                |> (if RemoteData.isSuccess response then
-                        Tuple.mapFirst updateFromResponse
-
-                    else
-                        identity
-                   )
-                |> Tuple.mapSecond (changeUrlIfSuccess model)
-                |> (if RemoteData.isFailure response then
-                        Tuple.mapSecond (maybe429Timeout model)
-
-                    else
-                        identity
-                   )
+            { model | isStonks = response }
+                |> withNoCmd
+                |> updateModel updateFromResponse
+                |> addCmd (changeUrlIfSuccess model)
+                |> addCmd (maybe429Timeout model)
 
         GetStonks ->
-            ( { model | isStonks = Loading }
-            , callStonksApi model.symbol
-            )
+            { model | isStonks = Loading }
+                |> withCmd (callStonksApi model.symbol)
 
         UrlRequest urlreq ->
             case urlreq of
                 Browser.Internal url ->
-                    ( model
-                    , Navigation.pushUrl model.key (Url.toString url)
-                    )
+                    model
+                        |> withCmd
+                            (Navigation.pushUrl
+                                model.key
+                                (Url.toString url)
+                            )
 
                 Browser.External url ->
-                    ( model
-                    , Navigation.load url
-                    )
+                    model
+                        |> withCmd (Navigation.load url)
 
         SetNotAsked _ ->
-            ( { model | isStonks = NotAsked }, Cmd.none )
+            { model | isStonks = NotAsked }
+                |> withNoCmd
 
         _ ->
-            ( model, Cmd.none )
+            withNoCmd model
 
 
 updateFromResponse : Model -> Model
@@ -166,9 +163,9 @@ updateFromResponse model =
     }
 
 
-maybe429Timeout : Model -> Cmd Msg -> Cmd Msg
-maybe429Timeout model cmd =
-    (case model.isStonks of
+maybe429Timeout : Model -> Cmd Msg
+maybe429Timeout model =
+    case model.isStonks of
         Failure err ->
             if is429 err then
                 Process.sleep 60000
@@ -180,21 +177,16 @@ maybe429Timeout model cmd =
 
         _ ->
             Cmd.none
-    )
-        :: [ cmd ]
-        |> Cmd.batch
 
 
-changeUrlIfSuccess : Model -> Cmd Msg -> Cmd Msg
-changeUrlIfSuccess model msgCmd =
+changeUrlIfSuccess : Model -> Cmd Msg
+changeUrlIfSuccess model =
     if RemoteData.isSuccess model.isStonks then
         Navigation.pushUrl model.key
             (Url.Builder.absolute [ model.symbol ] [])
-            :: [ msgCmd ]
-            |> Cmd.batch
 
     else
-        msgCmd
+        Cmd.none
 
 
 docView : Model -> Browser.Document Msg
