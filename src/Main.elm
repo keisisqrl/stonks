@@ -143,6 +143,7 @@ update msg model =
                 |> updateModel updateFromResponse
                 |> addCmd (changeUrl response)
                 |> addCmd (reEnableIf429 response)
+                |> addCmd (saveLastOnSuccess response)
 
         GetStonks ->
             { model | isStonks = Loading }
@@ -179,6 +180,16 @@ updateFromResponse model =
                 (\a -> a.symbol)
                 model.isStonks
     }
+
+
+saveLastOnSuccess : WebData StonksResponse -> Cmd Msg
+saveLastOnSuccess response =
+    RemoteData.map
+        (\sResp ->
+            saveLast sResp.symbol
+        )
+        response
+        |> RemoteData.withDefault Cmd.none
 
 
 changeUrlIfSuccess :
@@ -338,6 +349,15 @@ decodeFlags : D.Decoder Flags
 decodeFlags =
     D.map Flags
         (D.field "lastSymbol" (D.maybe D.string))
+
+
+decodeLastSymbol : D.Decoder (Maybe String)
+decodeLastSymbol =
+    D.maybe D.string
+        |> D.map
+            (Maybe.filter (\a -> String.length a < 5))
+        |> D.map
+            (Maybe.filter (\a -> String.toUpper a == a))
 
 
 inputwidth : Element.Attribute Msg
