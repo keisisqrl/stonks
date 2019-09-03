@@ -115,6 +115,7 @@ update msg model =
 
         StonksApiResponse response ->
             ( { model | isStonks = response }, Cmd.none )
+                |> Tuple.mapFirst updateFromResponse
 
         GetStonks ->
             ( { model | isStonks = Loading }
@@ -135,6 +136,16 @@ update msg model =
 
         _ ->
             ( model, Cmd.none )
+
+
+updateFromResponse : Model -> Model
+updateFromResponse model =
+    case model.isStonks of
+        Success { symbol } ->
+            { model | symbol = symbol }
+
+        _ ->
+            model
 
 
 docView : Model -> Browser.Document Msg
