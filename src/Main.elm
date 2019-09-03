@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Bool.Extra exposing (ifElse, toMaybe)
 import Browser exposing (Document, application, document)
 import Browser.Navigation as Navigation
 import Cmd.Extra exposing (withCmd, withNoCmd)
@@ -194,6 +195,18 @@ view model =
 
 inputColumn : Model -> Element Msg
 inputColumn model =
+    let
+        isLimited =
+            RemoteData.mapError is429 model.isStonks
+                |> defaultError False
+
+        btnConfig =
+            { onPress =
+                toMaybe GetStonks (not isLimited)
+            , label =
+                text (ifElse "Please wait..." "Check" isLimited)
+            }
+    in
     column [ centerX, padding 5, spacing 5 ]
         [ row []
             [ text "Is "
@@ -218,9 +231,7 @@ inputColumn model =
                 , Background.color (Element.rgb255 238 238 238)
                 , padding 3
                 ]
-                { onPress = Just GetStonks
-                , label = text "Check"
-                }
+                btnConfig
             ]
         ]
 
@@ -333,3 +344,13 @@ is429 errorHttp =
 
     else
         False
+
+
+defaultError : e -> RemoteData e a -> e
+defaultError err_ rd =
+    case rd of
+        Failure err ->
+            err
+
+        _ ->
+            err_
