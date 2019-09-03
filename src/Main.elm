@@ -348,7 +348,7 @@ decodeStonks =
 decodeFlags : D.Decoder Flags
 decodeFlags =
     D.map Flags
-        (D.field "lastSymbol" (D.maybe D.string))
+        (D.field "lastSymbol" decodeLastSymbol)
 
 
 decodeLastSymbol : D.Decoder (Maybe String)
@@ -357,7 +357,9 @@ decodeLastSymbol =
         |> D.map
             (Maybe.filter (\a -> String.length a < 5))
         |> D.map
-            (Maybe.filter (\a -> String.toUpper a == a))
+            (Maybe.filter (\a -> String.length a > 0))
+        |> D.map
+            (Maybe.map String.toUpper)
 
 
 inputwidth : Element.Attribute Msg
