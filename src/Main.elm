@@ -28,9 +28,10 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
 import Json.Decode as D
+import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
-import Task exposing (Task)
+import Task
 import Update.Extra exposing (addCmd, updateModel)
 import Url exposing (Url)
 import Url.Builder
@@ -104,6 +105,7 @@ type Msg
     | GetStonks
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
+    | SetNotAsked ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,6 +129,7 @@ update msg model =
                 |> withNoCmd
                 |> updateModel updateFromResponse
                 |> addCmd (changeUrl response)
+                |> addCmd (reEnableIf429 response)
 
         GetStonks ->
             { model | isStonks = Loading }
@@ -145,6 +148,10 @@ update msg model =
                 Browser.External url ->
                     model
                         |> withCmd (Navigation.load url)
+
+        SetNotAsked _ ->
+            { model | isStonks = NotAsked }
+                |> withNoCmd
 
         _ ->
             withNoCmd model
@@ -182,6 +189,17 @@ docView model =
     }
 
 
+reEnableIf429 : WebData e -> Cmd Msg
+reEnableIf429 response =
+    RemoteData.mapError is429 response
+        |> defaultError False
+        |> ifElse
+            (Process.sleep 60000
+                |> Task.perform SetNotAsked
+            )
+            Cmd.none
+
+
 view : Model -> Html Msg
 view model =
     column [ centerX, Element.spaceEvenly ]
@@ -206,6 +224,14 @@ inputColumn model =
             , label =
                 text (ifElse "Please wait..." "Check" isLimited)
             }
+
+        btnTextColor =
+            Font.color
+                (ifElse
+                    (Element.rgb255 119 119 119)
+                    (Element.rgb255 0 0 0)
+                    isLimited
+                )
     in
     column [ centerX, padding 5, spacing 5 ]
         [ row []
@@ -230,6 +256,7 @@ inputColumn model =
                 [ Border.width 1
                 , Background.color (Element.rgb255 238 238 238)
                 , padding 3
+                , btnTextColor
                 ]
                 btnConfig
             ]
@@ -304,7 +331,7 @@ getMessage : Model -> String
 getMessage model =
     case model.isStonks of
         NotAsked ->
-            "Unknown?"
+            "Click to check!"
 
         Loading ->
             "Loading..."
