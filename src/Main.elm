@@ -27,7 +27,6 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
 import Json.Decode as D
-import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
 import Task exposing (Task)
@@ -104,7 +103,6 @@ type Msg
     | GetStonks
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
-    | SetNotAsked Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -120,11 +118,14 @@ update msg model =
                 |> withNoCmd
 
         StonksApiResponse response ->
+            let
+                changeUrl =
+                    changeUrlIfSuccess model.key
+            in
             { model | isStonks = response }
                 |> withNoCmd
                 |> updateModel updateFromResponse
-                |> addCmd (changeUrlIfSuccess model)
-                |> addCmd (maybe429Timeout model)
+                |> addCmd (changeUrl response)
 
         GetStonks ->
             { model | isStonks = Loading }
@@ -144,10 +145,6 @@ update msg model =
                     model
                         |> withCmd (Navigation.load url)
 
-        SetNotAsked _ ->
-            { model | isStonks = NotAsked }
-                |> withNoCmd
-
         _ ->
             withNoCmd model
 
@@ -163,30 +160,18 @@ updateFromResponse model =
     }
 
 
-maybe429Timeout : Model -> Cmd Msg
-maybe429Timeout model =
-    case model.isStonks of
-        Failure err ->
-            if is429 err then
-                Process.sleep 60000
-                    |> Task.andThen (\_ -> Task.succeed True)
-                    |> Task.perform SetNotAsked
-
-            else
-                Cmd.none
-
-        _ ->
-            Cmd.none
-
-
-changeUrlIfSuccess : Model -> Cmd Msg
-changeUrlIfSuccess model =
-    if RemoteData.isSuccess model.isStonks then
-        Navigation.pushUrl model.key
-            (Url.Builder.absolute [ model.symbol ] [])
-
-    else
-        Cmd.none
+changeUrlIfSuccess :
+    Navigation.Key
+    -> WebData StonksResponse
+    -> Cmd Msg
+changeUrlIfSuccess key response =
+    RemoteData.map
+        (\a ->
+            Navigation.pushUrl key
+                (Url.Builder.absolute [ a.symbol ] [])
+        )
+        response
+        |> RemoteData.withDefault Cmd.none
 
 
 docView : Model -> Browser.Document Msg
@@ -233,31 +218,11 @@ inputColumn model =
                 , Background.color (Element.rgb255 238 238 238)
                 , padding 3
                 ]
-                { onPress = buttonPressMsg model
+                { onPress = Just GetStonks
                 , label = text "Check"
                 }
             ]
         ]
-
-
-buttonPressMsg : Model -> Maybe Msg
-buttonPressMsg model =
-    case RemoteData.mapError is429 model.isStonks of
-        Failure rateLimit ->
-            if rateLimit then
-                Nothing
-
-            else
-                Just GetStonks
-
-        Loading ->
-            Nothing
-
-        NotAsked ->
-            Just GetStonks
-
-        Success _ ->
-            Just GetStonks
 
 
 stonksImage : Model -> Element Msg
@@ -328,7 +293,7 @@ getMessage : Model -> String
 getMessage model =
     case model.isStonks of
         NotAsked ->
-            "Click to find out!"
+            "Unknown?"
 
         Loading ->
             "Loading..."
