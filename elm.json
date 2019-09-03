@@ -6,6 +6,7 @@
     "elm-version": "0.19.0",
     "dependencies": {
         "direct": {
+            "Chadtech/elm-bool-extra": "2.4.0",
             "Janiczek/cmd-extra": "1.1.0",
             "ccapndave/elm-update-extra": "4.0.0",
             "elm/browser": "1.0.1",

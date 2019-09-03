@@ -1,9 +1,9 @@
 module Main exposing (main)
 
+import Bool.Extra exposing (ifElse, toMaybe)
 import Browser exposing (Document, application, document)
 import Browser.Navigation as Navigation
 import Cmd.Extra exposing (withCmd, withNoCmd)
-import Debug
 import Element
     exposing
         ( Element
@@ -28,7 +28,6 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
 import Json.Decode as D
-import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
 import Task exposing (Task)
@@ -105,7 +104,6 @@ type Msg
     | GetStonks
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
-    | SetNotAsked ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -121,12 +119,14 @@ update msg model =
                 |> withNoCmd
 
         StonksApiResponse response ->
+            let
+                changeUrl =
+                    changeUrlIfSuccess model.key
+            in
             { model | isStonks = response }
                 |> withNoCmd
                 |> updateModel updateFromResponse
-                |> addCmd (changeUrlIfSuccess model)
-                |> addCmd (maybe429Timeout model)
-                |> Debug.log "responsereturn"
+                |> addCmd (changeUrl response)
 
         GetStonks ->
             { model | isStonks = Loading }
@@ -146,10 +146,6 @@ update msg model =
                     model
                         |> withCmd (Navigation.load url)
 
-        SetNotAsked _ ->
-            { model | isStonks = NotAsked }
-                |> withNoCmd
-
         _ ->
             withNoCmd model
 
@@ -165,29 +161,18 @@ updateFromResponse model =
     }
 
 
-maybe429Timeout : Model -> Cmd Msg
-maybe429Timeout model =
-    case model.isStonks of
-        Failure err ->
-            if is429 err then
-                Process.sleep 5
-                    |> Task.perform SetNotAsked
-
-            else
-                Cmd.none
-
-        _ ->
-            Cmd.none
-
-
-changeUrlIfSuccess : Model -> Cmd Msg
-changeUrlIfSuccess model =
-    if RemoteData.isSuccess model.isStonks then
-        Navigation.pushUrl model.key
-            (Url.Builder.absolute [ model.symbol ] [])
-
-    else
-        Cmd.none
+changeUrlIfSuccess :
+    Navigation.Key
+    -> WebData StonksResponse
+    -> Cmd Msg
+changeUrlIfSuccess key response =
+    RemoteData.map
+        (\a ->
+            Navigation.pushUrl key
+                (Url.Builder.absolute [ a.symbol ] [])
+        )
+        response
+        |> RemoteData.withDefault Cmd.none
 
 
 docView : Model -> Browser.Document Msg
@@ -210,6 +195,18 @@ view model =
 
 inputColumn : Model -> Element Msg
 inputColumn model =
+    let
+        isLimited =
+            RemoteData.mapError is429 model.isStonks
+                |> defaultError False
+
+        btnConfig =
+            { onPress =
+                toMaybe GetStonks (not isLimited)
+            , label =
+                text (ifElse "Please wait..." "Check" isLimited)
+            }
+    in
     column [ centerX, padding 5, spacing 5 ]
         [ row []
             [ text "Is "
@@ -234,31 +231,9 @@ inputColumn model =
                 , Background.color (Element.rgb255 238 238 238)
                 , padding 3
                 ]
-                { onPress = buttonPressMsg model
-                , label = text "Check"
-                }
+                btnConfig
             ]
         ]
-
-
-buttonPressMsg : Model -> Maybe Msg
-buttonPressMsg model =
-    case RemoteData.mapError is429 model.isStonks of
-        Failure rateLimit ->
-            if rateLimit then
-                Nothing
-
-            else
-                Just GetStonks
-
-        Loading ->
-            Nothing
-
-        NotAsked ->
-            Just GetStonks
-
-        Success _ ->
-            Just GetStonks
 
 
 stonksImage : Model -> Element Msg
@@ -329,7 +304,7 @@ getMessage : Model -> String
 getMessage model =
     case model.isStonks of
         NotAsked ->
-            "Click to find out!"
+            "Unknown?"
 
         Loading ->
             "Loading..."
@@ -369,3 +344,13 @@ is429 errorHttp =
 
     else
         False
+
+
+defaultError : e -> RemoteData e a -> e
+defaultError err_ rd =
+    case rd of
+        Failure err ->
+            err
+
+        _ ->
+            err_
