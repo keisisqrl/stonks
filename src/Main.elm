@@ -26,6 +26,7 @@ import Html exposing (Html)
 import Html.Attributes exposing (style)
 import Http
 import Json.Decode as D
+import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
 import Task exposing (Task)
@@ -101,6 +102,7 @@ type Msg
     | GetStonks
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
+    | SetNotAsked Bool
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -117,6 +119,12 @@ update msg model =
             ( { model | isStonks = response }, Cmd.none )
                 |> (if RemoteData.isSuccess response then
                         Tuple.mapFirst updateFromResponse
+
+                    else
+                        identity
+                   )
+                |> (if RemoteData.isFailure response then
+                        Tuple.mapSecond (maybe429Timeout model)
 
                     else
                         identity
@@ -139,6 +147,9 @@ update msg model =
                     , Navigation.load url
                     )
 
+        SetNotAsked _ ->
+            ( { model | isStonks = NotAsked }, Cmd.none )
+
         _ ->
             ( model, Cmd.none )
 
@@ -152,6 +163,25 @@ updateFromResponse model =
                 (\a -> a.symbol)
                 model.isStonks
     }
+
+
+maybe429Timeout : Model -> Cmd Msg -> Cmd Msg
+maybe429Timeout model cmd =
+    (case model.isStonks of
+        Failure err ->
+            if is429 err then
+                Process.sleep 60000
+                    |> Task.andThen (\_ -> Task.succeed True)
+                    |> Task.perform SetNotAsked
+
+            else
+                Cmd.none
+
+        _ ->
+            Cmd.none
+    )
+        :: [ cmd ]
+        |> Cmd.batch
 
 
 docView : Model -> Browser.Document Msg
@@ -198,11 +228,31 @@ inputColumn model =
                 , Background.color (Element.rgb255 238 238 238)
                 , padding 3
                 ]
-                { onPress = Just GetStonks
+                { onPress = buttonPressMsg model
                 , label = text "Check"
                 }
             ]
         ]
+
+
+buttonPressMsg : Model -> Maybe Msg
+buttonPressMsg model =
+    case RemoteData.mapError is429 model.isStonks of
+        Failure rateLimit ->
+            if rateLimit then
+                Nothing
+
+            else
+                Just GetStonks
+
+        Loading ->
+            Nothing
+
+        NotAsked ->
+            Just GetStonks
+
+        Success _ ->
+            Just GetStonks
 
 
 stonksImage : Model -> Element Msg
@@ -273,7 +323,7 @@ getMessage : Model -> String
 getMessage model =
     case model.isStonks of
         NotAsked ->
-            "Unknown?"
+            "Click to find out!"
 
         Loading ->
             "Loading..."
