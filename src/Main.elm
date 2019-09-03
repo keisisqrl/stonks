@@ -3,6 +3,7 @@ module Main exposing (main)
 import Browser exposing (Document, application, document)
 import Browser.Navigation as Navigation
 import Cmd.Extra exposing (withCmd, withNoCmd)
+import Debug
 import Element
     exposing
         ( Element
@@ -104,7 +105,7 @@ type Msg
     | GetStonks
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
-    | SetNotAsked Bool
+    | SetNotAsked ()
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -125,6 +126,7 @@ update msg model =
                 |> updateModel updateFromResponse
                 |> addCmd (changeUrlIfSuccess model)
                 |> addCmd (maybe429Timeout model)
+                |> Debug.log "responsereturn"
 
         GetStonks ->
             { model | isStonks = Loading }
@@ -168,8 +170,7 @@ maybe429Timeout model =
     case model.isStonks of
         Failure err ->
             if is429 err then
-                Process.sleep 60000
-                    |> Task.andThen (\_ -> Task.succeed True)
+                Process.sleep 5
                     |> Task.perform SetNotAsked
 
             else
