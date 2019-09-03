@@ -115,7 +115,12 @@ update msg model =
 
         StonksApiResponse response ->
             ( { model | isStonks = response }, Cmd.none )
-                |> Tuple.mapFirst updateFromResponse
+                |> (if RemoteData.isSuccess response then
+                        Tuple.mapFirst updateFromResponse
+
+                    else
+                        identity
+                   )
 
         GetStonks ->
             ( { model | isStonks = Loading }
@@ -140,12 +145,13 @@ update msg model =
 
 updateFromResponse : Model -> Model
 updateFromResponse model =
-    case model.isStonks of
-        Success { symbol } ->
-            { model | symbol = symbol }
-
-        _ ->
-            model
+    { model
+        | symbol =
+            RemoteData.unwrap
+                model.symbol
+                (\a -> a.symbol)
+                model.isStonks
+    }
 
 
 docView : Model -> Browser.Document Msg
