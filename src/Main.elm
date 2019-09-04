@@ -33,13 +33,16 @@ import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
 import Task
-import Update.Extra exposing (addCmd, updateModel)
+import Update.Extra as Update exposing (addCmd, updateModel)
 import Url exposing (Url)
 import Url.Builder
-import Url.Parser as Parser exposing (Parser)
+import Url.Parser as Parser exposing ((</>), Parser)
 
 
 port saveLast : String -> Cmd msg
+
+
+port swUpdate : (String -> msg) -> Sub msg
 
 
 main : Program D.Value Model Msg
@@ -48,7 +51,7 @@ main =
         { init = init
         , view = docView
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subs
         , onUrlChange = UrlChange
         , onUrlRequest = UrlRequest
         }
@@ -132,6 +135,7 @@ type Msg
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
     | SetNotAsked ()
+    | SwUpdate String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -179,6 +183,32 @@ update msg model =
         SetNotAsked _ ->
             { model | isStonks = NotAsked }
                 |> withNoCmd
+
+        SwUpdate updated ->
+            let
+                symbol =
+                    Url.fromString updated
+                        |> Debug.log "url"
+                        |> Maybe.andThen
+                            (Parser.parse
+                                (Parser.s ".api"
+                                    </> Parser.string
+                                )
+                            )
+                        |> Maybe.withDefault ""
+                        |> Debug.log "updated symbol"
+            in
+            withNoCmd model
+                |> (if symbol == model.symbol then
+                        Update.andThen update GetStonks
+
+                    else
+                        identity
+                   )
+                |> updateModel
+                    (\a ->
+                        { a | isStonks = model.isStonks }
+                    )
 
         _ ->
             withNoCmd model
@@ -382,6 +412,12 @@ inputwidth : Element.Attribute Msg
 inputwidth =
     style "width" "4em"
         |> Element.htmlAttribute
+
+
+subs : Model -> Sub Msg
+subs _ =
+    [ swUpdate SwUpdate ]
+        |> Sub.batch
 
 
 getMessage : Model -> String
