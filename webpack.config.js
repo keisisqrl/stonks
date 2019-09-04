@@ -50,7 +50,10 @@ module.exports = {
           },
           "extract-loader",
           {
-            loader: 'html-loader'
+            loader: 'html-loader',
+            options: {
+              minimize: true
+            }
           }
         ]
       }
