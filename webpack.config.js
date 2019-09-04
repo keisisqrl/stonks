@@ -33,8 +33,8 @@ module.exports = {
             options: {
               plugins: [
                 require('imagemin-mozjpeg')({
-                  progressive: true
-
+                  progressive: true,
+                  trellis: false
                 })
               ]
             }
