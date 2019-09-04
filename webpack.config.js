@@ -61,7 +61,7 @@ module.exports = {
       swDest: 'sw.js',
       precacheManifestFilename: 'sw-manifest.[manifestHash].js',
       runtimeCaching: [{
-        urlPattern: /\.api/,
+        urlPattern: /^\/\.api/,
         handler: 'StaleWhileRevalidate',
         options: {
           cacheName: 'stonks-api',
@@ -82,7 +82,9 @@ module.exports = {
       }],
       navigateFallback: '/index.html',
       navigateFallbackBlacklist: [/^\/\.api/],
-      cacheId: 'stonks'
+      cacheId: 'stonks',
+      clientsClaim: true,
+      skipWaiting: true
     })
   ]
 };
