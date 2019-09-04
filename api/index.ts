@@ -22,7 +22,7 @@ const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 
 // Minutes for a response to expire
 
-const exprMinutes: number = 1;
+const exprMinutes: number = 45;
 
 export default function(req: NowRequest, res: NowResponse) {
   const {symbol = "DJIA"}: {symbol?: string} = req.query;
