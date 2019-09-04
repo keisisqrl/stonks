@@ -24,9 +24,22 @@ module.exports = {
       },
       {
         test: /\.jpg$/,
-        use: {
-          loader: 'file-loader'
-        }
+        use: [
+          {
+            loader: 'file-loader'
+          },
+          {
+            loader: 'img-loader',
+            options: {
+              plugins: [
+                require('imagemin-mozjpeg')({
+                  progressive: true
+
+                })
+              ]
+            }
+          }
+        ]
       },
       {
         test: /\.html$/,
