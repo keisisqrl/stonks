@@ -41,9 +41,9 @@ if ('serviceWorker' in navigator) {
   });
   if ('BroadcastChannel' in window) {
     const sub = new BroadcastChannel('stonksSWUpdate');
-    sub.onmessage = swMessage;
+    sub.onmessage = swMessage.data;
   } else {
     navigator.serviceWorker
-    .addEventListener('message',swMessage);
+    .addEventListener('message',swMessage.data);
   }
 }

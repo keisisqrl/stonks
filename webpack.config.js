@@ -64,7 +64,7 @@ module.exports = {
       swDest: 'sw.js',
       precacheManifestFilename: 'sw-manifest.[manifestHash].js',
       runtimeCaching: [{
-        urlPattern: /^\/\.api/,
+        urlPattern: /\.api/,
         handler: 'StaleWhileRevalidate',
         options: {
           cacheName: 'stonks-api',
