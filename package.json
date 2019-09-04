@@ -13,7 +13,7 @@
     "extract-loader": "^3.1.0",
     "file-loader": "^4.2.0",
     "html-loader": "^0.5.5",
-    "imagemin": "^7.0.0",
+    "imagemin": "^6.0.0",
     "imagemin-mozjpeg": "^8.0.0",
     "img-loader": "^3.0.1",
     "node-elm-compiler": "^5.0.4",
