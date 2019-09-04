@@ -1,6 +1,7 @@
 import { Elm } from './src/Main.elm';
 import stonksImg from './stonks.jpg';
 import notStonksImg from './not-stonks.jpg';
+import html from './index.html';
 
 const stonkKey = 'lastStonk';
 

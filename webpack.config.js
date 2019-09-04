@@ -1,13 +1,12 @@
 const path = require('path');
 const {GenerateSW} = require('workbox-webpack-plugin');
-const CopyPlugin = require('copy-webpack-plugin');
 
 const MODE =
   process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
 module.exports = {
   mode: MODE,
-  entry: './index.js',
+  entry: ['./index.js', './index.html'],
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist')
@@ -28,13 +27,23 @@ module.exports = {
         use: {
           loader: 'file-loader'
         }
+      },
+      {
+        test: /\.html$/,
+        use: [
+          {
+            loader: "file-loader",
+            options: {name: "[name].[ext]"}
+          },
+          "extract-loader",
+          {
+            loader: 'html-loader'
+          }
+        ]
       }
     ]
   },
   plugins: [
-    new CopyPlugin([
-      'index.html'
-    ]),
     new GenerateSW({
       swDest: 'sw.js',
       precacheManifestFilename: 'sw-manifest.[manifestHash].js',
