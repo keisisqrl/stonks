@@ -188,7 +188,6 @@ update msg model =
             let
                 symbol =
                     Url.fromString updated
-                        |> Debug.log "url"
                         |> Maybe.andThen
                             (Parser.parse
                                 (Parser.s ".api"
@@ -196,7 +195,6 @@ update msg model =
                                 )
                             )
                         |> Maybe.withDefault ""
-                        |> Debug.log "updated symbol"
             in
             withNoCmd model
                 |> (if symbol == model.symbol then
