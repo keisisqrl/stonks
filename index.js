@@ -26,10 +26,24 @@ app.ports.saveLast.subscribe((stonk) => {
   localStorage.setItem(stonkKey, stonk)
 });
 
+function swMessage(e) {
+  console.log(e);
+  if (e.type === 'CACHE_UPDATED') {
+    console.log(e.payload.updatedURL);
+  }
+}
+
 // Check that service workers are supported and register SW
 if ('serviceWorker' in navigator) {
   // Use the window load event to keep the page load performant
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js');
   });
+  if ('BroadcastChannel' in window) {
+    const sub = new BroadcastChannel('stonksSWUpdate');
+    sub.onmessage = swMessage;
+  } else {
+    navigator.serviceWorker
+    .addEventListener('message',swMessage);
+  }
 }
