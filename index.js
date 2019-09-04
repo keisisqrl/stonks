@@ -27,7 +27,6 @@ app.ports.saveLast.subscribe((stonk) => {
 });
 
 function swMessage(e) {
-  console.log(e);
   if (e.data.type === 'CACHE_UPDATED') {
     console.log(e.data.payload.updatedURL);
   }
