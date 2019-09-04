@@ -33,6 +33,12 @@ function swMessage(e) {
   }
 }
 
+var subToStonks;
+
+if ('BroadcastChannel' in window) {
+  subToStonks = new BroadcastChannel('stonksSWUpdate');
+}
+
 // Check that service workers are supported and register SW
 if ('serviceWorker' in navigator) {
   // Use the window load event to keep the page load performant
@@ -40,8 +46,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');
   });
   if ('BroadcastChannel' in window) {
-    const sub = new BroadcastChannel('stonksSWUpdate');
-    sub.onmessage = swMessage.data;
+    subToStonks.onmessage = swMessage.data;
   } else {
     navigator.serviceWorker
     .addEventListener('message',swMessage.data);
