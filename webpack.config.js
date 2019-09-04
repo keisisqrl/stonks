@@ -70,7 +70,10 @@ module.exports = {
           cacheName: 'stonks-api',
           fetchOptions: {cache: 'no-cache'},
           expiration: {
-            maxAgeSeconds: 6 * 60 * 60
+            // First number is hours to cache
+            // This can be fairly high because we update the page when a fresh
+            // result is loaded
+            maxAgeSeconds: 24 * 60 * 60
           },
           backgroundSync: {
             name: 'retry-fetch-stonks',
