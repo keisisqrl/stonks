@@ -1,4 +1,7 @@
 const path = require('path');
+const {GenerateSW} = require('workbox-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
+
 const MODE =
   process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
@@ -12,14 +15,52 @@ module.exports = {
   module: {
     rules: [
       {
-      test: /\.elm$/,
-      exclude: [/elm-stuff/, /node_modules/],
-      use: {
-        loader: 'elm-webpack-loader',
-        options:
-          MODE === 'development' ?  {debug: true} : {optimize: true}
+        test: /\.elm$/,
+        exclude: [/elm-stuff/, /node_modules/],
+        use: {
+          loader: 'elm-webpack-loader',
+          options:
+            MODE === 'development' ?  {debug: true} : {optimize: true}
+          }
+      },
+      {
+        test: /\.jpg$/,
+        use: {
+          loader: 'file-loader'
+        }
       }
-    }
+    ]
+  },
+  plugins: [
+    new CopyPlugin([
+      'index.html'
+    ]),
+    new GenerateSW({
+      swDest: 'sw.js',
+      precacheManifestFilename: 'sw-manifest.[manifestHash].js',
+      runtimeCaching: [{
+        urlPattern: /\.api/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'stonks-api',
+          fetchOptions: {cache: 'no-cache'},
+          expiration: {
+            maxAgeSeconds: 6 * 60 * 60
+          },
+          backgroundSync: {
+            name: 'retry-fetch-stonks',
+            options: {
+              maxAgeSeconds: 300
+            }
+          },
+          broadcastUpdate: {
+            channelName: 'stonksSWUpdate'
+          }
+        }
+      }],
+      navigateFallback: '/index.html',
+      navigateFallbackBlacklist: [/^\/\.api/],
+      cacheId: 'stonks'
+    })
   ]
-  }
 };

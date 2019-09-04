@@ -12,7 +12,7 @@
   ],
   "regions": [ "iad1"],
   "routes": [
-    {"src": "/.api/([a-zA-Z]{1,4})",
+    {"src": "/.api/([a-zA-Z0-9]{1,4})",
      "dest": "/api/index.ts?symbol=$1"},
     {"src": "/.api(.*)", "dest": "/api$1"},
     {"src": "/(.*).jpg",
@@ -21,7 +21,7 @@
         "Cache-Control": "max-age=86400, immutable"
       }
     },
-    {"src": "/index.js","dest": "/index.js"},
+    {"src": "/(index|sw|sw-manifest\\..?).js","dest": "/$1.js"},
     {"src": "/(.*)", "dest": "/"}
   ]
 }

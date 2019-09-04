@@ -58,11 +58,20 @@ type alias Model =
     { symbol : String
     , isStonks : WebData StonksResponse
     , key : Navigation.Key
+    , images : ImageUrls
     }
 
 
 type alias Flags =
-    { lastSymbol : Maybe String }
+    { lastSymbol : Maybe String
+    , images : ImageUrls
+    }
+
+
+type alias ImageUrls =
+    { stonks : String
+    , notStonks : String
+    }
 
 
 defaultSymbol : String
@@ -77,7 +86,10 @@ init jsonFlags url key =
             D.decodeValue decodeFlags jsonFlags
                 |> Result.toMaybe
                 |> Maybe.withDefault
-                    (Flags Nothing)
+                    (Flags
+                        Nothing
+                        (ImageUrls "/stonks.jpg" "/not-stonks.jpg")
+                    )
 
         symbol =
             initSymbol url flags.lastSymbol
@@ -87,6 +99,7 @@ init jsonFlags url key =
                 symbol
                 Loading
                 key
+                flags.images
     in
     ( model
     , callStonksApi symbol
@@ -302,17 +315,12 @@ stonksImage model =
 
         Success response ->
             let
-                imgBase =
+                imgUrl =
                     if response.isStonks then
-                        "stonks"
+                        model.images.stonks
 
                     else
-                        "not-stonks"
-
-                imgUrl =
-                    Url.Builder.absolute
-                        [ imgBase ++ ".jpg" ]
-                        []
+                        model.images.notStonks
             in
             image [ width fill ] { src = imgUrl, description = message }
 
@@ -347,8 +355,9 @@ decodeStonks =
 
 decodeFlags : D.Decoder Flags
 decodeFlags =
-    D.map Flags
+    D.map2 Flags
         (D.field "lastSymbol" decodeLastSymbol)
+        (D.field "images" decodeImageUrls)
 
 
 decodeLastSymbol : D.Decoder (Maybe String)
@@ -360,6 +369,13 @@ decodeLastSymbol =
             (Maybe.filter (\a -> String.length a > 0))
         |> D.map
             (Maybe.map String.toUpper)
+
+
+decodeImageUrls : D.Decoder ImageUrls
+decodeImageUrls =
+    D.map2 ImageUrls
+        (D.field "stonks" D.string)
+        (D.field "notStonks" D.string)
 
 
 inputwidth : Element.Attribute Msg
