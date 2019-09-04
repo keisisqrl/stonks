@@ -1,6 +1,9 @@
 const path = require('path');
+const MODE =
+  process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
 module.exports = {
+  mode: MODE,
   entry: './index.js',
   output: {
     filename: 'index.js',
@@ -13,9 +16,8 @@ module.exports = {
       exclude: [/elm-stuff/, /node_modules/],
       use: {
         loader: 'elm-webpack-loader',
-        options: {
-          optimize: true
-        }
+        options:
+          MODE === 'development' ?  {debug: true} : {optimize: true}
       }
     }
   ]
