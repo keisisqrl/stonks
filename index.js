@@ -28,8 +28,8 @@ app.ports.saveLast.subscribe((stonk) => {
 
 function swMessage(e) {
   console.log(e);
-  if (e.type === 'CACHE_UPDATED') {
-    console.log(e.payload.updatedURL);
+  if (e.data.type === 'CACHE_UPDATED') {
+    console.log(e.data.payload.updatedURL);
   }
 }
 
@@ -41,9 +41,9 @@ if ('serviceWorker' in navigator) {
   });
   if ('BroadcastChannel' in window) {
     const sub = new BroadcastChannel('stonksSWUpdate');
-    sub.onmessage = swMessage.data;
+    sub.onmessage = swMessage;
   } else {
     navigator.serviceWorker
-    .addEventListener('message',swMessage.data);
+    .addEventListener('message',swMessage);
   }
 }
