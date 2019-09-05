@@ -1,4 +1,4 @@
-port module Main exposing (main)
+module Main exposing (main)
 
 import Bool.Extra exposing (ifElse, toMaybe)
 import Browser exposing (Document, application, document)
@@ -32,17 +32,13 @@ import Maybe.Extra as Maybe
 import Process
 import RemoteData exposing (RemoteData(..), WebData)
 import RemoteData.Http as RDHttp
+import Stonks.Ports exposing (..)
+import Stonks.Util exposing (extractSymbolFromUrl)
 import Task
 import Update.Extra as Update exposing (addCmd, updateModel)
 import Url exposing (Url)
 import Url.Builder
 import Url.Parser as Parser exposing ((</>), Parser)
-
-
-port saveLast : String -> Cmd msg
-
-
-port swUpdate : (String -> msg) -> Sub msg
 
 
 main : Program D.Value Model Msg
@@ -113,7 +109,7 @@ initSymbol : Url -> Maybe String -> String
 initSymbol url lastSymbol =
     let
         urlSymbol =
-            Parser.parse Parser.string url
+            extractSymbolFromUrl url
 
         fallback =
             defaultSymbol
@@ -135,7 +131,7 @@ type Msg
     | UrlChange Url
     | UrlRequest Browser.UrlRequest
     | SetNotAsked ()
-    | SwUpdate String
+    | ApiUpdate String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -184,29 +180,20 @@ update msg model =
             { model | isStonks = NotAsked }
                 |> withNoCmd
 
-        SwUpdate updated ->
+        ApiUpdate updated ->
             let
                 symbol =
                     Url.fromString updated
-                        |> Maybe.andThen
-                            (Parser.parse
-                                (Parser.s ".api"
-                                    </> Parser.string
-                                )
-                            )
+                        |> Maybe.andThen extractSymbolFromUrl
                         |> Maybe.withDefault ""
             in
             withNoCmd model
                 |> (if symbol == model.symbol then
-                        Update.andThen update GetStonks
+                        addCmd (callStonksApi symbol)
 
                     else
                         identity
                    )
-                |> updateModel
-                    (\a ->
-                        { a | isStonks = model.isStonks }
-                    )
 
         _ ->
             withNoCmd model
@@ -414,7 +401,7 @@ inputwidth =
 
 subs : Model -> Sub Msg
 subs _ =
-    [ swUpdate SwUpdate ]
+    [ apiUpdate ApiUpdate ]
         |> Sub.batch
 
 

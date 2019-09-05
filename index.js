@@ -27,9 +27,9 @@ app.ports.saveLast.subscribe((stonk) => {
 });
 
 function swMessage(e) {
-  if (e.data.type === 'CACHE_UPDATED') {
-    console.log(e.data.payload.updatedURL);
-    app.ports.swUpdate.send(e.data.payload.updatedURL);
+  if (e.data.type === 'CACHE_UPDATED'
+      && e.data.payload.updatedURL.contains('.api')) {
+    app.ports.apiUpdate.send(e.data.payload.updatedURL);
   }
 }
 
@@ -40,7 +40,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js');
   });
   if ('BroadcastChannel' in window) {
-    const sub = new BroadcastChannel('stonksSWUpdate');
+    const sub = new BroadcastChannel('stonksAPIUpdate');
     sub.onmessage = swMessage;
   } else {
     navigator.serviceWorker

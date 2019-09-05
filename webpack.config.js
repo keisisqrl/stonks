@@ -82,7 +82,7 @@ module.exports = {
             }
           },
           broadcastUpdate: {
-            channelName: 'stonksSWUpdate'
+            channelName: 'stonksAPIUpdate'
           }
         }
       }],
