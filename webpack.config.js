@@ -6,7 +6,7 @@ const MODE =
 
 module.exports = {
   mode: MODE,
-  entry: ['./index.js', './index.html'],
+  entry: ['./index.html', './index.js'],
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist')
@@ -23,7 +23,8 @@ module.exports = {
           }
       },
       {
-        test: /\.jpg$/,
+        test: /\.(jpg)$/,
+        include: /assets\/images\//,
         use: [
           {
             loader: 'file-loader'
@@ -52,10 +53,41 @@ module.exports = {
           {
             loader: 'html-loader',
             options: {
-              minimize: true
+              minimize: true,
+              attrs: ["link:href"]
             }
           }
         ]
+      },
+      {
+        test: /\.webmanifest$/,
+        include: /assets\//,
+        use: [
+          {
+            loader: 'file-loader',
+            options: {
+              name: '[name].[ext]'
+            }
+          },
+          {
+            loader: 'webmanifest-loader',
+            options: {
+              name: "Stonks.today",
+              shortName: "Stonks",
+              description: "Is it stonks?"
+            }
+          }
+        ]
+      },
+      {
+        test: /\.(ico|png)$/,
+        include: /assets\/icons\//,
+        use: {
+          loader: 'file-loader',
+          options: {
+            name: '[name].[ext]'
+          }
+        }
       }
     ]
   },
