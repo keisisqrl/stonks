@@ -109,7 +109,7 @@ initSymbol : Url -> Maybe String -> String
 initSymbol url lastSymbol =
     let
         urlSymbol =
-            extractSymbolFromUrl url
+            Parser.parse Parser.string url
 
         fallback =
             defaultSymbol
