@@ -62,7 +62,7 @@ module.exports = {
   plugins: [
     new GenerateSW({
       swDest: 'sw.js',
-      precacheManifestFilename: 'sw-manifest.[manifestHash].js',
+      precacheManifestFilename: 'precache-manifest.[manifestHash].js',
       runtimeCaching: [{
         urlPattern: /\.api/,
         handler: 'StaleWhileRevalidate',

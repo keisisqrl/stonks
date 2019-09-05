@@ -21,7 +21,7 @@
         "Cache-Control": "max-age=86400, immutable"
       }
     },
-    {"src": "/(index|sw|sw-manifest\\..+?).js$","dest": "/$1.js"},
+    {"src": "/(index|sw|precache-manifest\\..+?).js$","dest": "/$1.js"},
     {"src": "/(.*)", "dest": "/"}
   ]
 }
