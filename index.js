@@ -27,7 +27,7 @@ app.ports.saveLast.subscribe((stonk) => {
 
 function swMessage(e) {
   if (e.data.type === 'CACHE_UPDATED'
-      && e.data.payload.updatedURL.contains('.api')) {
+      && e.data.payload.updatedURL.includes('.api')) {
     app.ports.apiUpdate.send(e.data.payload.updatedURL);
   }
 }
