@@ -1,4 +1,4 @@
-import { Elm } from './src/Main.elm';
+import { Elm } from './src/Main';
 import stonksImg from './assets/images/stonks.jpg';
 import notStonksImg from './assets/images/not-stonks.jpg';
 
@@ -25,7 +25,7 @@ app.ports.saveLast.subscribe((stonk) => {
   localStorage.setItem(stonkKey, stonk)
 });
 
-function swMessage(e) {
+function swMessage(e: MessageEvent) {
   if (e.data.type === 'CACHE_UPDATED'
       && e.data.payload.updatedURL.includes('.api')) {
     app.ports.apiUpdate.send(e.data.payload.updatedURL);

@@ -6,13 +6,18 @@ const MODE =
 
 module.exports = {
   mode: MODE,
-  entry: ['./index.html', './index.js'],
+  entry: ['./index.html', './index.ts'],
   output: {
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist')
   },
   module: {
     rules: [
+      {
+        test: /\.ts$/,
+        exclude: [/node_modules/, path.resolve(__dirname, "api")],
+        loader: "ts-loader"
+      },
       {
         test: /\.elm$/,
         exclude: [/elm-stuff/, /node_modules/],
@@ -90,6 +95,9 @@ module.exports = {
         }
       }
     ]
+  },
+  resolve: {
+    extensions: ['.ts', '.js', '.elm']
   },
   plugins: [
     new GenerateSW({
