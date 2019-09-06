@@ -118,7 +118,7 @@ module.exports = {
           backgroundSync: {
             name: 'retry-fetch-stonks',
             options: {
-              maxAgeSeconds: 300
+              maxRetentionTime: 600
             }
           },
           broadcastUpdate: {
