@@ -1,10 +1,11 @@
-const path = require('path');
-const {GenerateSW} = require('workbox-webpack-plugin');
+import path from 'path';
+import {GenerateSW} from 'workbox-webpack-plugin';
+import webpack from 'webpack';
 
 const MODE =
   process.env.NODE_ENV === 'development' ? 'development' : 'production';
 
-module.exports = {
+const config: webpack.Configuration = {
   mode: MODE,
   entry: ['./index.html', './index.ts'],
   output: {
@@ -134,3 +135,5 @@ module.exports = {
     })
   ]
 };
+
+export default config;
