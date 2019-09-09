@@ -412,6 +412,11 @@ tough-cookie@~2.4.3:
     psl "^1.1.24"
     punycode "^1.4.1"
 
+tsoption@^0.7.0:
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/tsoption/-/tsoption-0.7.0.tgz#54634ff56d1bd09d8886fd5bd0d1a5373789440a"
+  integrity sha512-0FaCR76q5OAb/73Yvl7GOM4IldI+fN4n0w7oKW7JHsuYMRfvhCj29kfKK11YzYywwIXCRtb2UwBrz1wVKzdmrQ==
+
 tunnel-agent@^0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/tunnel-agent/-/tunnel-agent-0.6.0.tgz#27a5dea06b36b04a0a9966774b290868f0fc40fd"

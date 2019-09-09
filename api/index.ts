@@ -4,6 +4,7 @@ import moment from 'moment-timezone';
 import nacl from 'tweetnacl';
 import b64 from 'base64-js';
 import {TextEncoder, TextDecoder} from 'util';
+import {Option} from 'tsoption';
 
 interface ResponseObject {
   symbol: string,
@@ -25,7 +26,8 @@ const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 const exprMinutes: number = 45;
 
 export default function(req: NowRequest, res: NowResponse) {
-  const {symbol = "DJIA"}: {symbol?: string} = req.query;
+  const symbol: string =
+    Option.of(<string>req.query.symbol).getOrElse('DJIA');
   if (symbol.length > 4) {
     console.log("symbol " + symbol + " too long!");
     res.status(400).send(null);
@@ -46,34 +48,35 @@ export default function(req: NowRequest, res: NowResponse) {
       return;
   }
 
-  const match_tag: string|null = req.headers['if-none-match'];
-  const last_fetch: number = Date.parse(req.headers['if-modified-since']);
-  if (match_tag) {
+  const match_tag: Option<string> = Option.of(req.headers['if-none-match']);
+  const last_fetch: Option<number> =
+    Option.of(Date.parse(req.headers['if-modified-since']));
+  if (match_tag.nonEmpty()) {
     let matched: boolean = false;
     let etag: EtagContents;
     try {
-     [matched, etag] = check_etag(match_tag);
+     [matched, etag] = check_etag(match_tag.get());
     } catch (error) {
       console.log("Error checking etag: " + error);
     }
     if (matched) {
       console.log(`Matched etag for ${symbol}, populating cache`);
       add_cache_control(res, etag.ts);
-      res.setHeader("ETag",match_tag);
+      res.setHeader("ETag",match_tag.get());
       res.status(200).json(etag.resp);
       return;
     } else {
       console.log(`Expired etag for ${symbol}`);
     }
-  } else if (last_fetch) {
-    if (no_update(last_fetch)) {
+  } else if (last_fetch.nonEmpty()) {
+    if (no_update(last_fetch.get())) {
       console.log("No need to update per timestamp");
       res.status(304).send(null);
       return;
     }
   }
 
-  alpha.stocks.quote((symbol as string), {datatype: "json"})
+  alpha.stocks.quote(symbol, {datatype: "json"})
   .then((av_resp) => {
       let symbol: string = av_resp['Global Quote']['01. symbol'];
       let change: string = av_resp['Global Quote']['09. change'];
