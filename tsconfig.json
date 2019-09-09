@@ -2,7 +2,8 @@
   "compilerOptions": {
     "noImplicitAny": true,
     "target": "es5",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "alwaysStrict": true
   },
   "exclude": [
     "api/**"

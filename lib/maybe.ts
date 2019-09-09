@@ -3,7 +3,7 @@ export abstract class Maybe<T> {
   static from<T>(contents: T): Just<T>
   static from<T>(contents?: null | undefined): Nothing<T>
   static from<T>(contents?: null | T | undefined): Maybe<T> {
-    return (contents === null) ? new Nothing() : new Just(contents);
+    return (contents == null) ? new Nothing() : new Just(contents);
   }
 
   abstract getOrElse<U extends T>(def: U): T | U;
@@ -11,6 +11,7 @@ export abstract class Maybe<T> {
   abstract toString(): string;
   abstract toJSON(): T | null;
   abstract orElse<U extends T>(alt: Maybe<U>): Maybe<T> | Maybe<U>;
+  abstract map<U>(f: (value: T) => U): Maybe<U>
 }
 
 export class Just<T> extends Maybe<T> {
@@ -25,7 +26,7 @@ export class Just<T> extends Maybe<T> {
   isEmpty() { return false;}
 
   toString() {
-    return `Just(${this.contents.toString()})`
+    return `Just(${this.contents})`
   }
 
   toJSON(): T {
@@ -34,6 +35,12 @@ export class Just<T> extends Maybe<T> {
 
   orElse<U extends T>(_alt: Maybe<U>): Just<T> {
     return this;
+  }
+
+  map<U>(f: (value: T) => U): Just<U> {
+    return new Just<U>(
+      f(this.contents)
+    );
   }
 }
 
@@ -60,5 +67,9 @@ export class Nothing<T> extends Maybe<T> {
     } else {
       return alt;
     }
+  }
+
+  map<U>(_f: (value: T) => U): Nothing<U> {
+    return new Nothing<U>();
   }
 }
