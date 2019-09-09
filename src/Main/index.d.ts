@@ -16,7 +16,13 @@ export namespace Elm {
     }
     export function init(options: {
       node?: HTMLElement | null;
-      flags: any;
+      flags: {
+        lastSymbol: string | null,
+        images: {
+          stonks: string,
+          notStonks: string
+        }
+      };
     }): Elm.Main.App;
   }
 }

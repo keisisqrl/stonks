@@ -1,17 +1,23 @@
 import { Elm } from './src/Main';
 import stonksImg from './assets/images/stonks.jpg';
 import notStonksImg from './assets/images/not-stonks.jpg';
+import {Maybe} from './lib/maybe';
 
 const stonkKey = 'lastStonk';
 
 // recover last retrieved symbol from localStorage
 
-var lastSymbol = localStorage.getItem(stonkKey);
+var lastSymbol: Maybe<string> =
+  Maybe.from(localStorage.getItem(stonkKey));
+
+console.log(JSON.stringify({
+  lastSymbol: lastSymbol
+}))
 
 var app = Elm.Main.init({
   node: document.querySelector('main'),
   flags: {
-    lastSymbol: lastSymbol,
+    lastSymbol: lastSymbol.toJSON(),
     images: {
       stonks: stonksImg,
       notStonks: notStonksImg
