@@ -17,7 +17,12 @@ const config: webpack.Configuration = {
       {
         test: /\.ts$/,
         exclude: [/node_modules/, path.resolve(__dirname, "api")],
-        loader: "ts-loader"
+        use: {
+          loader: "ts-loader",
+          options: {
+            transpileOnly: !(MODE === 'development')
+          }
+        }
       },
       {
         test: /\.elm$/,
