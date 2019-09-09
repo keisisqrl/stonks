@@ -6,13 +6,15 @@
   },
   "builds": [
     {"src": "package.json", "use": "@now/static-build"},
-    {"src": "api/index.ts", "use": "@now/node"}
+    {"src": "api/index.ts", "use": "@now/node"},
+    {"src": "robots.txt", "use": "@now/static"}
   ],
   "regions": [ "iad1", "cle1"],
   "routes": [
     {"src": "/.api/([a-zA-Z0-9]{1,4})",
      "dest": "/api/index.ts?symbol=$1"},
     {"src": "/.api(.*)", "dest": "/api$1"},
+    {"src": "/robots.txt", "dest": "/robots.txt"},
     {"src": "/(.*)\\.(jpg|png|ico|webmanifest)",
       "dest": "/$1.$2",
       "headers": {
