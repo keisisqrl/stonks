@@ -60,7 +60,10 @@ const config: webpack.Configuration = {
             loader: 'html-loader',
             options: {
               minimize: true,
-              attrs: ["link:href"]
+              attrs: [
+                "link:href",
+                "img:src"
+              ]
             }
           }
         ]
