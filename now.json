@@ -7,10 +7,12 @@
   "builds": [
     {"src": "package.json", "use": "@now/static-build"},
     {"src": "api/index.ts", "use": "@now/node"},
-    {"src": "robots.txt", "use": "@now/static"}
+    {"src": "robots.txt", "use": "@now/static"},
+    {"src": "api/new.ts", "use": "@now/node"}
   ],
   "regions": [ "iad1", "cle1"],
   "routes": [
+    {"src": "/api/new", "dest": "/api/new.ts"},
     {"src": "/.api/([a-zA-Z0-9]{1,4})",
      "dest": "/api/index.ts?symbol=$1"},
     {"src": "/.api(.*)", "dest": "/api$1"},

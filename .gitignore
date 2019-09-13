@@ -6,3 +6,5 @@ node_modules
 build
 dist
 .DS_Store
+api/src/Main/
+api/src/Main.js
