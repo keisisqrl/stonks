@@ -35,7 +35,7 @@ update msg int =
     case msg of
         Get reqId ->
             ( int
-            , sleep 1000
+            , sleep 1
                 |> andThen (\_ -> succeed reqId)
                 |> perform Return
             )

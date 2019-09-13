@@ -27,15 +27,18 @@ app.ports.returnToTs.subscribe(handleResponse);
 export default function(_req: NowRequest, res: NowResponse)
                         : Promise<NowResponse>{
   let reqId: string = uuidv4();
-  return new Promise(
+  let retVal: Promise<NowResponse> = new Promise(
     (resolve, reject) => {
       requests[reqId] = resolve;
-      setTimeout(() => reject("Request timed out"), 2000);
-      app.ports.getTheThing.send(reqId);
+      setTimeout(() => reject("Request timed out"), 200);
     })
     .then((response: string) => {
       return res.status(200).send(response)})
     .catch((error: string) => {
       console.log(error);
       return res.status(500).send(error)});
+
+  app.ports.getTheThing.send(reqId);
+
+  return retVal;
 }
