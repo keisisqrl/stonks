@@ -25,6 +25,6 @@
     "node": ">=10.x"
   },
   "scripts": {
-    "now-build": "elm-typescript-interop; elm make src/Main.elm --output=src/Main.js"
+    "now-build": "elm-typescript-interop; elm make src/Main.elm --output=src/Main.js --optimize"
   }
 }
