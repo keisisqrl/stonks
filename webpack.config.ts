@@ -139,7 +139,8 @@ const config: webpack.Configuration = {
       navigateFallbackBlacklist: [/^\/\.api/],
       cacheId: 'stonks',
       clientsClaim: true,
-      skipWaiting: true
+      skipWaiting: true,
+      offlineGoogleAnalytics: true
     })
   ]
 };
