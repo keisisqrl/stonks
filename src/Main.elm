@@ -26,6 +26,7 @@ import Element.Font as Font
 import Element.Input as Input
 import Html exposing (Html)
 import Html.Attributes exposing (style)
+import Html.Events.Extra as HtmlEvents
 import Http
 import Json.Decode as D
 import Maybe.Extra as Maybe
@@ -284,17 +285,27 @@ inputColumn model =
                     (Element.rgb255 0 0 0)
                     isLimited
                 )
+
+        inputOnEnter =
+            if isLimited then
+                []
+
+            else
+                List.singleton <|
+                    onEnter GetStonks
     in
     column [ centerX, padding 5, spacing 5 ]
         [ row []
             [ text "Is "
             , Input.text
-                [ Border.widthEach { bottom = 1, top = 0, left = 0, right = 0 }
-                , inputwidth
-                , Border.rounded 0
-                , Font.center
-                , padding 1
-                ]
+                ([ Border.widthEach { bottom = 1, top = 0, left = 0, right = 0 }
+                 , inputwidth
+                 , Border.rounded 0
+                 , Font.center
+                 , padding 1
+                 ]
+                    ++ inputOnEnter
+                )
                 { text = model.symbol
                 , onChange = TextInput
                 , placeholder = Nothing
@@ -459,3 +470,9 @@ defaultError err_ rd =
 
         _ ->
             err_
+
+
+onEnter : msg -> Element.Attribute msg
+onEnter =
+    HtmlEvents.onEnter
+        >> Element.htmlAttribute
