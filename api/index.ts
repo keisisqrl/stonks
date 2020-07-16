@@ -35,7 +35,7 @@ export default function(req: NowRequest, res: NowResponse) {
   }
 
   console.log("request for symbol: " + symbol +
-    " via regions " + req.headers['x-now-trace']);
+    " id " + req.headers['x-vercel-id']);
 
   if (symbol.toUpperCase() != symbol) {
       console.log("redirect to upper-case");
