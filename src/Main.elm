@@ -76,7 +76,7 @@ type alias ImageUrls =
 
 defaultSymbol : String
 defaultSymbol =
-    "DJIA"
+    "SBUX"
 
 
 init : D.Value -> Url -> Navigation.Key -> ( Model, Cmd Msg )
