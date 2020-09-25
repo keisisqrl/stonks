@@ -1,5 +1,5 @@
 import AlphaVantage from "alphavantage-ts";
-import { NowRequest, NowResponse } from '@now/node';
+import { VercelRequest, VercelResponse } from '@vercel/node';
 import moment from 'moment-timezone';
 import nacl from 'tweetnacl';
 import b64 from 'base64-js';
@@ -44,7 +44,7 @@ const etag_key: Uint8Array = b64.toByteArray(process.env.ETAG_KEY);
 
 const exprMinutes: number = 45;
 
-export default function(req: NowRequest, res: NowResponse) {
+export default function(req: VercelRequest, res: VercelResponse) {
   const symbol: string =
     Option.of(<string>req.query.symbol).getOrElse('DJIA');
   if (symbol.length > 4) {
@@ -121,7 +121,7 @@ export default function(req: NowRequest, res: NowResponse) {
   });
 }
 
-function add_etag(res: NowResponse, timestamp: number, resp: ResponseObject): void {
+function add_etag(res: VercelResponse, timestamp: number, resp: ResponseObject): void {
   const encoder: TextEncoder = new TextEncoder();
   let contents: EtagContents = {
     ts: timestamp,
@@ -138,7 +138,7 @@ function add_etag(res: NowResponse, timestamp: number, resp: ResponseObject): vo
   res.setHeader("etag",'"' + tagString + '"')
 }
 
-function add_cache_control(res: NowResponse, timestamp = Date.now()): void {
+function add_cache_control(res: VercelResponse, timestamp = Date.now()): void {
   let cacheTime: number = calculate_cache_time(timestamp);
   logger.info("Caching for: " + cacheTime + " seconds");
   res.setHeader("cache-control", "s-maxage=" + cacheTime);
