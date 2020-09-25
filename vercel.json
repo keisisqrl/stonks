@@ -5,9 +5,9 @@
     "ETAG_KEY": "@etag-key"
   },
   "builds": [
-    {"src": "package.json", "use": "@now/static-build"},
-    {"src": "api/index.ts", "use": "@now/node"},
-    {"src": "robots.txt", "use": "@now/static"}
+    {"src": "package.json", "use": "@vercel/static-build"},
+    {"src": "api/index.ts", "use": "@vercel/node"},
+    {"src": "robots.txt", "use": "@vercel/static"}
   ],
   "routes": [
     {"src": "/.api/([a-zA-Z0-9]{1,4})",
