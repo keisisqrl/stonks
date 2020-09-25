@@ -5,6 +5,25 @@ import nacl from 'tweetnacl';
 import b64 from 'base64-js';
 import {TextEncoder, TextDecoder} from 'util';
 import {Option} from 'tsoption';
+var winston = require('winston');
+
+require('winston-papertrail').Papertrail;
+
+const winstonPapertrail = new winston.transports.Papertrail({
+  host: process.env.LOG_HOST,
+  port: process.env.LOG_PORT,
+  program: "stonks",
+  hostname: "stonks.today"
+});
+
+const winstonConsole = new winston.transports.Console();
+
+const logger = new winston.Logger({
+  transports: [
+    winstonPapertrail,
+    winstonConsole
+  ]
+})
 
 interface ResponseObject {
   symbol: string,
@@ -29,16 +48,16 @@ export default function(req: NowRequest, res: NowResponse) {
   const symbol: string =
     Option.of(<string>req.query.symbol).getOrElse('DJIA');
   if (symbol.length > 4) {
-    console.log("symbol " + symbol + " too long!");
+    logger.info("symbol " + symbol + " too long!");
     res.status(400).send(null);
     return;
   }
 
-  console.log("request for symbol: " + symbol +
-    " via regions " + req.headers['x-now-trace']);
+  logger.info("request for symbol: " + symbol +
+    " id " + req.headers['x-vercel-id']);
 
   if (symbol.toUpperCase() != symbol) {
-      console.log("redirect to upper-case");
+      logger.info("redirect to upper-case");
       res.setHeader("Location",
         req.headers['x-forwarded-proto'] + "://" +
         req.headers['host'] + ['/.api/'] +
@@ -57,20 +76,20 @@ export default function(req: NowRequest, res: NowResponse) {
     try {
      [matched, etag] = check_etag(match_tag.get());
     } catch (error) {
-      console.log("Error checking etag: " + error);
+      logger.info("Error checking etag: " + error);
     }
     if (matched) {
-      console.log(`Matched etag for ${symbol}, populating cache`);
+      logger.info(`Matched etag for ${symbol}, populating cache`);
       add_cache_control(res, etag.ts);
       res.setHeader("ETag",match_tag.get());
       res.status(200).json(etag.resp);
       return;
     } else {
-      console.log(`Expired etag for ${symbol}`);
+      logger.info(`Expired etag for ${symbol}`);
     }
   } else if (last_fetch.nonEmpty()) {
     if (no_update(last_fetch.get())) {
-      console.log("No need to update per timestamp");
+      logger.info("No need to update per timestamp");
       res.status(304).send(null);
       return;
     }
@@ -81,7 +100,7 @@ export default function(req: NowRequest, res: NowResponse) {
       let symbol: string = av_resp['Global Quote']['01. symbol'];
       let change: string = av_resp['Global Quote']['09. change'];
       let isStonks: boolean = parseFloat(change) > 0;
-      console.log("Got response for " + symbol);
+      logger.info("Got response for " + symbol);
       let respPayload: ResponseObject = {
         symbol: symbol,
         isStonks: isStonks
@@ -92,11 +111,11 @@ export default function(req: NowRequest, res: NowResponse) {
 
   }).catch((err) => {
     if (err.includes("frequency")) {
-      console.log("ERROR! api limit exceeded");
+      logger.info("ERROR! api limit exceeded");
       res.setHeader("retry-after", "120");
       res.status(429).send(null);
     } else {
-      console.log("Unknown error: " + err);
+      logger.info("Unknown error: " + err);
       res.status(500).send(null);
     }
   });
@@ -121,7 +140,7 @@ function add_etag(res: NowResponse, timestamp: number, resp: ResponseObject): vo
 
 function add_cache_control(res: NowResponse, timestamp = Date.now()): void {
   let cacheTime: number = calculate_cache_time(timestamp);
-  console.log("Caching for: " + cacheTime + " seconds");
+  logger.info("Caching for: " + cacheTime + " seconds");
   res.setHeader("cache-control", "s-maxage=" + cacheTime);
 }
 
