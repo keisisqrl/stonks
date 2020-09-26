@@ -33,5 +33,7 @@
   "engines": {
     "node": ">=10.x"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@vercel/node": "^1.8.3"
+  }
 }
