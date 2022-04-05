@@ -79,7 +79,7 @@ export default function(req: VercelRequest, res: VercelResponse) {
       logger.info("Error checking etag: " + error);
     }
     if (matched) {
-      logger.info(`Matched etag for ${symbol}, populating cache`);
+      logger.info(`Current ETag for ${symbol}, populating cache`);
       add_cache_control(res, etag.ts);
       res.setHeader("ETag",match_tag.get());
       res.status(200).json(etag.resp);
